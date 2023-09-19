@@ -1,0 +1,146 @@
+{% extends 'bricks/base.html' %}
+{% load fontawesome_5 %}
+{% load static %}
+{% load custom_filters %}
+{% block content %}
+
+<style>
+    /* CSS for color swatch */
+    .color-swatch-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: start;
+    }
+    .color-swatch {
+        width: 45px;
+        height: 25px;
+        background-color: #FFFFFF; /* Default background color if needed */
+        border: 1px solid rgb(212, 212, 212); /* Optional: Add a border */
+        border-radius: 5px; /* Rounded corners */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        cursor: pointer; /* Add a pointer cursor for interaction */
+        margin: 3px;
+        padding: 3px;
+    }
+    /* CSS for color number */
+    .color-num {
+        font-size: 12px;
+        color: #000000; /* Text color */
+    }
+
+    /* Tooltip styles (Bootstrap) */
+    .tooltip-inner {
+        max-width: 200px; /* Set the maximum width for the tooltip */
+        text-align: center;
+        color: #000000;
+        background-color: #FFFFFF;
+        box-shadow: 0px 0px 4px black;
+        opacity: 2 !important;
+    }
+    .bs-tooltip-top .tooltip-arrow::before,
+    .bs-tooltip-auto[data-popper-placement^=top] .tooltip-arrow::before {
+        border-top-color: #FFFFFF;
+    }
+</style>
+<div class="container mt-3">
+    <div class="row">
+        <!-- Navigation links -->
+        <div class="col-md-12 mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{% url 'itemdetail' previous_item_id %}" class="btn btn-secondary">&larr; Previous</a>
+                <a href="{% url 'itemview' %}" class="btn btn-primary">Return to Item View</a>
+                <a href="{% url 'itemdetail' next_item_id %}" class="btn btn-secondary">Next &rarr;</a>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <!-- Left column for item image -->
+        <div class="col-md-4">
+            <div class="d-flex justify-content-center align-items-center" style="height: 50vh; border: 1px solid; border-radius: 10px; padding: 10px; box-shadow: 0px 0px 4px;">
+                <img
+                    src="{{ item.LargeInternalURL.url }}"
+                    alt="{{ item.Name }}"
+                    class="img-fluid"
+                    style="max-width: 500px; max-height: 500px;"
+                    data-magnify-src="{{ item.LargeInternalURL.url }}"
+                    />
+            </div>
+        </div>
+        <!-- Right column for colors, item info, quantity, and button -->
+        <div class="col-md-8">
+            <!-- Item name and description -->
+            <h2>{{ item.Name }}</h2>
+            <p>{{ item.Description }}</p>
+
+            <!-- Color matrix -->
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Color Type</th> <!-- Adjust the width as needed -->
+                        <th style="width: 70%;">Colors</th> <!-- Adjust the width as needed -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for color_type, color_list in colors_by_type.items %}
+                    <tr>
+                        <td>{{ color_type }}</td>
+                        <td>
+                            <div class="color-swatch-container">
+                                {% for color in color_list %}
+                                <div class="color-swatch" 
+                                    style="background-color: {{ color.RGB }};" 
+                                    data-toggle="tooltip" 
+                                    data-placement="top" 
+                                    title="<div style='text-align: center;''><img src='/media/color_images/color.{{ color.ColorID }}.png' alt='Color Image' width: 110px; height: 90px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
+                                    data-html="true">
+                                    <div class="color-num" style="background: {{ color.RGB }}; color: {{ color.RGB|is_dark_color }}">{{ color.WebrickColorID }}</div>
+                                </div>                          
+                                {% endfor %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div class="form-group d-flex">
+                        <label for="listSelector" style="width: 30%;">List:</label>
+                        <select class="form-control" id="listSelector" name="listSelector" style="width: 70%;">
+                            {% for list in lists %}
+                                <option value="{{ list.ListID }}">{{ list.Name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+            <!-- Quantity input and Add to List button -->
+            <div class="row mt-3">
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="quantity" placeholder="Quantity">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary btn-block" id="addToList">Add to List</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('[data-toggle="tooltip"]').tooltip({
+            trigger: 'hover',
+            html: true,
+            placement: 'top',
+        });
+    });
+</script>
+<script>
+    $(document).ready(function() {
+      $('img[data-magnify-src]').magnify(); // Select all images with data-magnify-src attribute
+    });
+    </script>
+{% endblock content %}

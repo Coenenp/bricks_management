@@ -1,0 +1,116 @@
+{% extends 'bricks/base.html' %}
+{% load custom_filters %}
+
+{% block content %}
+    {% if messages %}
+        <div class="row mt-3">
+            {% for message in messages %}
+                {% if message.tags == 'error' %}
+                    <div class="col-md-10 col-12 mx-auto alert alert-danger">
+                        {{ message }}
+                    </div>
+                {% else %}
+                    <div class="col-md-10 col-12 mx-auto alert alert-success">
+                        {{ message }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+    <div class="row">
+        <div class="col-md-10 col-12 mx-auto mt-5">
+            <div class="d-flex justify-content-end">
+                <a href="{% url 'add-part' %}" class="btn btn-primary">+</a>
+            </div>
+
+            <table class="table table-hover table-striped">
+                <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">ItemID</th>
+                    <th scope="col">Image</th>
+                    <th scope="col">Color</th>
+                    <th scope="col">Qty</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Subtype</th>
+                    <th scope="col">List</th>
+                    <th scope="col">Category</th>
+                    <th scope="col"></th>
+                    <th scope="col"></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% if parts|length == 0 %}
+                    <tr>
+                        <th scope="row">-</th>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                {% endif %}
+
+                {% for part in parts %}
+                    {% for list_part in part.listpart_set.all %}
+                        <tr>
+                            <th scope="row">{{ part.PartID }}</th>
+                            <td>{{ part.ItemID }}</td>
+                            <td>
+                                <img src="{{ part.ImageReference }}" alt="{{ part.ItemID.Description }}"
+                                    class="img-fluid" style="max-width: 50px;">
+                            </td>
+                            <td>
+                                <div class="color-swatch"
+                                    style="background-color: {{ part.ColorID.RGB }}; padding: 5px; text-align: center;"
+                                    data-toggle="tooltip"
+                                    data-placement="top"
+                                    title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part.ColorID.ColorID }}.png' alt='Color Image' width: 110px; height: 90px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
+                                    data-html="true">
+                                    <div class="color-num"
+                                        style="background: {{ part.ColorID.RGB }}; color: {{ part.ColorID.RGB|is_dark_color }}">{{ part.ColorID.Name }}</div>
+                                </div>
+                            </td>
+                            <td>{{ list_part.Quantity }}</td>
+                            <td>{{ part.ItemID.TypeID.Name }}</td>
+                            <td>{{ part.ItemID.SubtypeID.Name }}</td>
+                            <td>{{ list_part.ListID.Name }}</td>
+                            {% if part.PartID in moc_parts_ids %}
+                                <td class="text-danger">{{ list_part.ListID.CategoryID.Name }}</td>
+                            {% else %}
+                                <td class="text-success">{{ list_part.ListID.CategoryID.Name }}</td>
+                            {% endif %}
+                            <td><a href="{% url 'edit-part' part.PartID %}" class="btn btn-outline-secondary">Edit</a></td>
+                            <td><a href="{% url 'delete-part' part.PartID %}" class="btn btn-secondary">Delete</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}
+                </tbody>
+            </table>
+            <!-- Pagination links -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_parts.has_previous %}
+                        <a href="?page=1">&laquo; first</a>
+                        <a href="?page={{ page_parts.previous_page_number }}">previous</a>
+                    {% endif %}
+
+                    <span class="current-page">
+                        Page {{ page_parts.number }} of {{ page_parts.paginator.num_pages }}
+                    </span>
+
+                    {% if page_parts.has_next %}
+                        <a href="?page={{ page_parts.next_page_number }}">next</a>
+                        <a href="?page={{ page_parts.paginator.num_pages }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

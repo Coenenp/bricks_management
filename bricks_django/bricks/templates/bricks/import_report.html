@@ -1,0 +1,16 @@
+{% extends 'bricks/base.html' %}
+
+{% block content %}
+	<a href="{% url 'dashboard' %}" class="btn btn-outline-primary my-3 mx-4">Go Back</a>
+
+  <div class="row">
+		<div class="col-11 col-md-4 mx-auto mt-5">
+			<h1>Import Report</h1>
+      <ul>
+        {% for item in import_report %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>         
+{% endblock %}

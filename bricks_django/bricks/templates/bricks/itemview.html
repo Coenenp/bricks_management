@@ -1,0 +1,220 @@
+{% extends 'bricks/base.html' %}
+{% load fontawesome_5 %}
+{% load static %}
+{% block content %}
+    <style>
+		/* Reduce the gap between columns for cards */
+		.custom-card-col {
+			padding-right: 5px;
+        	padding-left: 5px;
+		}
+	
+		/* Override card width to maintain column layout */
+		.custom-card {
+			width: 100%;
+		}
+        /* CSS for aspect ratio container */
+        .aspect-ratio-container {
+            position: relative;
+            overflow: hidden;
+            padding-bottom: 75%; /* Set the desired aspect ratio (e.g., 4:3) */
+        }
+		.card-text {
+			max-height: 3em; /* Adjust the height to your preference */
+			overflow: hidden;
+			text-overflow: ellipsis; /* Add an ellipsis (...) to indicate truncated text */
+			white-space: nowrap; /* Prevent text from wrapping */
+		}		
+        /* CSS for the image within the aspect ratio container */
+        .aspect-ratio-item {
+            position: absolute;
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%); /* Center the image */
+            width: auto;
+            height: auto;
+            max-width: calc(100% - 40px); /* Subtract twice the space for max width */
+            max-height: calc(100% - 40px); /* Subtract twice the space for max height */
+            object-fit: contain; /* Scale the image to contain within the container */
+        }
+
+        /* CSS for button container */
+        .button-container {
+            margin-top: auto; /* Push the buttons to the bottom */
+            display: flex;
+            justify-content: space-between; /* Space the buttons evenly */
+        }
+    </style>
+    <!-- <span id="viewModeDisplay">{{ request.session.view_mode }}</span> -->
+    <div class="d-flex justify-content-end mb-2">
+        <button
+            id="toggleViewButton"
+            class="btn btn-primary"
+            data-url="{% url 'toggleview' %}"
+            data-csrf-token="{{ csrf_token }}"
+            data-view-mode="{% if request.session.view_mode == 'array' %}array{% else %}list{% endif %}"
+        >
+            {% if request.session.view_mode == 'array' %}
+                <i class="fas fa-th-large"></i> <!-- Icon for grid view -->
+            {% else %}
+                <i class="fas fa-list"></i> <!-- Icon for list view -->
+            {% endif %}
+        </button>
+
+        <script src="{% static 'js/toggle_view_button.js' %}"></script>
+    </div>
+    {% if messages %}
+        <div class="row mt-3">
+            {% for message in messages %}
+                {% if message.tags == 'error' %}
+                    <div class="col-md-10 col-12 mx-auto alert alert-danger">
+                        {{ message }}
+                    </div>
+                {% else %}
+                    <div class="col-md-10 col-12 mx-auto alert alert-success">
+                        {{ message }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% if request.session.view_mode == 'list' %}
+        <div class="row">
+            <div class="col-md-10 col-12 mx-auto mt-5">
+                <form method="get" action="{% url 'itemview' %}">
+                    <div class="d-flex justify-content-between">
+                        <div class="form-group">
+                            <input type="text" class="form-control" id="searchField" name="search" placeholder="Search">
+                        </div>
+                        <div class="form-group d-flex align-items-center">
+                            <label for="typeFilter" style="margin-right: 10px;">Type:</label>
+                            <select class="form-control" id="typeFilter" name="typeFilter">
+                                <option value="">All Types</option>
+                                {% for type in types %}
+                                    <option value="{{ type.TypeID }}">{{ type.Name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </form>
+                
+                <table id="itemTable" class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th id="idColumn">ID</th>
+                            <th id="nameColumn">Name</th>                        
+                            <th id="descriptionColumn">Description</th>
+                            <th id="imageColumn">Image</th>
+                            <th id="typeColumn">Type</th>                    
+                            <th id="subtypeColumn">Subtype</th>
+                            <th id="editColumn"></th>
+                            <th id="deleteColumn"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if items|length == 0 %}
+                        <tr>
+                            <th scope="row">-</th>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>    
+                            <td>-</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        {% endif %}
+
+                        {% for item in items %}
+                        <tr>
+                            <th scope="row">{{ item.ItemID }}</th>
+                            <td class="item-clickable" data-item-id="{{ item.ItemID }}">{{ item.Name }}</td>
+							<td class="item-clickable" data-item-id="{{ item.ItemID }}">{{ item.Description }}</td>
+							<td class="item-clickable" data-item-id="{{ item.ItemID }}">
+								{% if item.InternalURL %}
+									<img src="{{ item.InternalURL.url }}" alt="{{ item.Name }}" class="img-thumbnail" width="50" height="50">
+								{% else %}
+									- No Image -
+								{% endif %}
+							</td>
+							<td>{{ item.TypeID.Name }}</td>
+                            <td>{{ item.SubtypeID.Name }}</td>
+                            <td><a href="#" class="btn btn-outline-secondary">Edit</a></td>
+                            <td><a href="#" class="btn btn-secondary">Delete</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p>{{ items|length }} Item(s) </p>
+            </div>
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="col-md-10 col-12 mx-auto mt-5">
+                <form method="get" action="{% url 'itemview' %}">
+                    <div class="d-flex justify-content-between">
+                        <div class="form-group">
+                            <input type="text" class="form-control" id="searchField" name="search" placeholder="Search">
+                        </div>
+                        <div class="form-group d-flex align-items-center">
+                            <label for="typeFilter" style="margin-right: 10px;">Type:</label>
+                            <select class="form-control" id="typeFilter" name="typeFilter">
+                                <option value="">All Types</option>
+                                {% for type in types %}
+                                    <option value="{{ type.TypeID }}">{{ type.Name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </form>
+                <div class="row">
+                    {% for item in items %}
+                    <div class="col-md-2 col-1 custom-card-col mt-2">
+                        <div class="card">
+                            <div class="card-img-container item-clickable" data-item-id="{{ item.ItemID }}">
+                                <div class="aspect-ratio-container"> <!-- Create an aspect ratio container -->
+                                    <img src="{% if item.LargeInternalURL %}{{ item.LargeInternalURL.url }}{% endif %}" alt="{{ item.Name }}" class="card-img aspect-ratio-item">
+                                </div>
+                            </div>
+                            <div class="card-body">
+								<h5 class="card-title item-clickable" data-item-id="{{ item.ItemID }}">{{ item.Name }}</h5>
+								<p class="card-text item-clickable" data-item-id="{{ item.ItemID }}" data-toggle="tooltip" data-placement="top" title="{{ item.Description }}">
+									{{ item.Description }}
+								</p>
+								<p class="card-text">Type: {{ item.TypeID.Name }}</p>
+								<p class="card-text">Subtype: {{ item.SubtypeID.Name }}</p>
+								<div class="button-container">
+									<a href="#" class="btn btn-outline-secondary">Edit</a>
+									<a href="#" class="btn btn-secondary">Delete</a>
+								</div>
+							</div>							
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <p>{{ items|length }} Item(s) </p>
+            </div>
+        </div>
+    {% endif %}  
+<script>
+    $(document).ready(function () {
+        $('#itemTable').DataTable({
+			"paging": false, // Disable pagination
+            "searching": false, // Disable search
+            "info": false, // Disable info (items per page, etc.)
+            "columnDefs": [
+                { "targets": [0, 1, 2, 4], "orderable": true } // Make columns sortable
+            ]
+        });
+    });
+</script>
+<script>
+    $(document).ready(function () {
+        $('.item-clickable').click(function () {
+            window.location.href = '/item/' + $(this).data('item-id');
+        });
+    });
+</script>
+{% endblock content %}

@@ -1,0 +1,26 @@
+{% extends "admin/change_list.html" %}
+
+{% block result_list %}
+    <table id="result_list" class="table">
+        <thead>
+        <tr>
+            <th scope="col">Type</th>
+            <th scope="col">Subtype</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for type in types %}
+            <tr>
+                <td>{{ type.name }}</td>
+                <td>
+                    {% for subtype in type.subtypes.all %}
+                        {{ subtype.name }}<br>
+                    {% empty %}
+                        (No subtypes)
+                    {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

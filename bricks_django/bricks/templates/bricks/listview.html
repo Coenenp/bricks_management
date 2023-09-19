@@ -1,0 +1,69 @@
+{% extends 'bricks/base.html' %}
+
+{% block content %}
+	{% if messages %}
+		<div class="row mt-3">
+			{% for message in messages %}
+				{% if message.tags == 'error' %}
+					<div class="col-md-10 col-12 mx-auto alert alert-danger">
+						{{ message }}
+					</div>
+				{% else %}
+					<div class="col-md-10 col-12 mx-auto alert alert-success">
+						{{ message }}
+					</div>
+				{% endif %}
+			{% endfor %}
+		</div>
+	{% endif %}
+	<div class="row">
+		<div class="col-md-10 col-12 mx-auto mt-5">
+			<div class="d-flex justify-content-end">
+				<a href="#" class="btn btn-primary">+</a>
+			</div>
+
+			<table class="table table-hover table-striped">
+				<thead>
+					<tr>
+						<th scope="col">ID</th>
+						<th scope="col">Name</th>						
+						<th scope="col">Description</th>
+						<th scope="col"># Items</th>
+						<th scope="col"># Pieces</th>					
+						<th scope="col">Category</th>
+						<th scope="col"></th>
+						<th scope="col"></th>
+					</tr>
+				</thead>
+				<tbody>
+					{% if lists|length == 0 %}
+					<tr>
+						<th scope="row">-</th>
+						<td>-</td>
+						<td>-</td>
+						<td>-</td>
+						<td>-</td>	
+						<td>-</td>
+						<td></td>
+						<td></td>
+					</tr>
+					{% endif %}
+
+					{% for list in lists %}
+					<tr>
+						<th scope="row">{{ list.ListID }}</th>
+						<td>{{ list.Name }}</td>
+						<td>{{ list.Description }}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>{{ list.CategoryID.Name }}</td>
+						<td><a href="#" class="btn btn-outline-secondary">Edit</a></td>
+						<td><a href="#" class="btn btn-secondary">Delete</a></td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+            <p>{{ lists|length }} Item(s) </p>
+		</div>
+	</div>
+{% endblock content %}
