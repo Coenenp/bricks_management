@@ -9,7 +9,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db.models import F, Q
-from .forms import UserRegisterForm, PartForm, ExcelUploadForm
+from .forms import UserRegisterForm, PartForm, ExcelUploadForm, QuantityForm
 from .models import Part, List, Item, Type, Color, ListPart, ItemAlias
 from collections import defaultdict
 from bricks_django.settings import MOC_PART
@@ -202,7 +202,50 @@ class ItemDetailView(View):
                 'next_item_id': next_item_id.pk,
             },
         )
+
+class AddtoList(View):
+    def get(self, request):
+        form = QuantityForm()
+        return render(request, 'itemdetail.html', {'form': form})
     
+    def post(self, request):
+        form = QuantityForm(request.POST)
+        if form.is_valid():
+            quantity = form.cleaned_data['quantity']
+            item = form.cleaned_data['item']
+            color = form.cleaned_data['color']
+            selected_list = form.cleaned_data['selected_list']
+            
+            # Get the currently logged-in user
+            user = request.user
+
+            try:
+                part = Part.objects.get(ItemID=item, ColorID=color)
+            except Part.DoesNotExist:
+                part = Part.objects.create(ItemID=item, ColorID=color, user=user)
+
+            try:
+                list_part = ListPart.objects.get(ListID=selected_list, PartID=part)
+                list_part.quantity += quantity
+                list_part.save()
+            except ListPart.DoesNotExist:
+                list_part = ListPart.objects.create(ListID=selected_list, PartID=part, Quantity=quantity)
+
+            response_data = {
+                'success': True,
+                'message': 'Item added to the list successfully.'
+            }
+            return JsonResponse(response_data)
+        
+        else:   
+            errors = form.errors.as_json() 
+            response_data = {
+                'success': False,
+                'message': 'Invalid form data.',
+                'errors': errors
+            }
+            return JsonResponse(response_data, status=400)
+
 class GetValidSubtypesView(View):
     def get(self, request):
         type_id = request.GET.get('type_id')

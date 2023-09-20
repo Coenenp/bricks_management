@@ -21,3 +21,8 @@ class PartForm(forms.ModelForm):
 class ExcelUploadForm(forms.Form):
     excel_file = forms.FileField(label='Select an Excel file')
 
+class QuantityForm(forms.Form):
+    quantity = forms.IntegerField(required=True)
+    item = forms.ModelChoiceField(queryset=Item.objects.all(), required=True)
+    color = forms.ModelChoiceField(queryset=Color.objects.all(), required=True)
+    selected_list = forms.ModelChoiceField(queryset=List.objects.all(), required=True)
