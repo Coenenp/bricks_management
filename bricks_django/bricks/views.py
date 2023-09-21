@@ -172,6 +172,7 @@ class ItemView(LoginRequiredMixin, View):
     
 class ItemDetailView(View):
     def get(self, request, item_id):
+        initial_color_id = 1
         item = get_object_or_404(Item, pk=item_id)
         colors = Color.objects.filter(WebrickColorID__isnull=False)
         colors_by_type = defaultdict(list)
@@ -200,6 +201,7 @@ class ItemDetailView(View):
                 'lists': lists,
                 'previous_item_id': previous_item_id.pk,
                 'next_item_id': next_item_id.pk,
+                'initial_color_id': initial_color_id,
             },
         )
 
@@ -226,7 +228,7 @@ class AddtoList(View):
 
             try:
                 list_part = ListPart.objects.get(ListID=selected_list, PartID=part)
-                list_part.quantity += quantity
+                list_part.Quantity += quantity
                 list_part.save()
             except ListPart.DoesNotExist:
                 list_part = ListPart.objects.create(ListID=selected_list, PartID=part, Quantity=quantity)

@@ -35,7 +35,7 @@
         color: #000000; /* Text color */
     }
     .input-group.fixed-width {
-        width: 120px; /* Set the desired width here */
+        width: 160px; /* Set the desired width here */
     }
     input[type="number"]::-webkit-inner-spin-button,
     input[type="number"]::-webkit-outer-spin-button {
@@ -106,7 +106,7 @@
                         <td>
                             <div class="color-swatch-container">
                                 {% for color in color_list %}
-                                <div class="color-swatch" 
+                                <div class="color-swatch {% if color.ColorID == initial_color_id %}selected{% endif %}" 
                                     style="background-color: {{ color.RGB }};" 
                                     data-toggle="tooltip" 
                                     data-placement="top" 
@@ -128,6 +128,7 @@
                     <div class="form-group d-flex">
                         <label for="listSelector" style="width: 30%;">  List</label>
                         <select class="form-control" id="listSelector" name="listSelector" style="width: 70%;" onchange="selectList(this)">
+                            <option value="" disabled selected>Select a List</option>
                             {% for list in lists %}
                                 <option value="{{ list.ListID }}">{{ list.Name }}</option>
                             {% endfor %}
@@ -176,58 +177,88 @@
 </div>
 
 <script>
+    // Function to select a list
     function selectList(list) {
-        // Set the value of the selected_list field
         var selectedListInput = document.getElementById('selectedListInput');
         selectedListInput.value = list.value;
+        updateAddToListButtonState();
     }
 
+    // Function to update the state of the "Add to List" button
+    function updateAddToListButtonState() {
+        var quantityField = document.getElementById('quantity');
+        var listSelector = document.getElementById('listSelector');
+        var addButton = document.getElementById('addToList');
+
+        // Check if quantity is greater than 0 and a list is selected
+        if (parseInt(quantityField.value) > 0 && listSelector.value !== '') {
+            addButton.disabled = false; // Enable the button
+        } else {
+            addButton.disabled = true; // Disable the button
+        }
+    }
+
+    // Initialize tooltips
     $(document).ready(function () {
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
             html: true,
             placement: 'top',
         });
+        
+        // Call the function to set the initial button state on page load
+        updateAddToListButtonState();
     });
-</script>
-<script>
+
+    // Functions to increment and decrement quantity
     function decrementValue() {
         var quantityField = document.getElementById("quantity");
         var currentValue = parseInt(quantityField.value);
         if (currentValue > 0) {
             quantityField.value = currentValue - 1;
         }
+        updateAddToListButtonState();
     }
 
     function incrementValue() {
         var quantityField = document.getElementById("quantity");
         var currentValue = parseInt(quantityField.value);
         quantityField.value = currentValue + 1;
+        updateAddToListButtonState();
     }
-</script>
-<script>
+
+    // Function to select a color
     function selectColor(colorSwatch) {
         // Deselect all color swatches by removing the 'selected' class
         var allColorSwatches = document.querySelectorAll('.color-swatch');
-        allColorSwatches.forEach(function(swatch) {
+        allColorSwatches.forEach(function (swatch) {
             swatch.classList.remove('selected');
         });
-        
+
         // Select the clicked color swatch by adding the 'selected' class
         colorSwatch.classList.add('selected');
-        
+
         // Get the color ID from the data attribute
         var colorID = colorSwatch.getAttribute('data-color-id');
-        
+
         document.getElementById('color').value = colorID;
     }
-</script>
-<script>
-    $(document).ready(function() {
-      $('img[data-magnify-src]').magnify(); // Select all images with data-magnify-src attribute
+
+    // Manually trigger selectColor for the initially selected color on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        var initialColorID = {{ initial_color_id }};
+        var initialColorSwatch = document.querySelector('.color-swatch[data-color-id="' + initialColorID + '"]');
+        if (initialColorSwatch) {
+            selectColor(initialColorSwatch);
+        }
     });
-</script>
-<script>
+
+    // Initialize image magnification
+    $(document).ready(function () {
+        $('img[data-magnify-src]').magnify();
+    });
+
+    // Handle form submission
     $(document).ready(function () {
         $('#addToListForm').on('submit', function (e) {
             e.preventDefault(); // Prevent the form from submitting normally
@@ -238,12 +269,10 @@
                 data: $(this).serialize(),
                 success: function (data) {
                     if (data.success) {
-                        console.log("Success");
                         // Display the success modal
                         $('#successModal .modal-body').text(data.message);
                         $('#successModal').modal('show');
                     } else {
-                        console.log("Error");
                         alert('Error: ' + data.message);
                     }
                 },
@@ -256,4 +285,5 @@
         });
     });
 </script>
+
 {% endblock content %}
