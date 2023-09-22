@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.shortcuts import redirect
 from django.db.models import F, Q
 from .forms import UserRegisterForm, PartForm, ExcelUploadForm, QuantityForm
 from .models import Part, List, Item, Type, Color, ListPart, ItemAlias
@@ -33,22 +34,39 @@ class Index(TemplateView):
     template_name = 'bricks/index.html'
     
 class Dashboard(LoginRequiredMixin, View, Paginator):
-	def get(self, request):
-		parts = Part.objects.order_by('ItemID')
+    def get(self, request):
+        parts = Part.objects.order_by('ItemID')
+        aggregated_data = []
+        moc_parts = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID')
 
-		moc_parts = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID')
+        if moc_parts.count() > 0:
+            messages.info(request, f'{moc_parts.count()} are MOC parts')
 
-		if moc_parts.count() > 0:
-			messages.info(request, f'{moc_parts.count()} are MOC parts')
+        moc_parts_ids = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID').values_list('PartID', flat=True)
 
-		moc_parts_ids = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID').values_list('PartID', flat=True)
+        for part in parts:
+            # Calculate the aggregated quantity for this part
+            aggregated_quantity = ListPart.objects.filter(PartID=part).aggregate(total_quantity=models.Sum('Quantity'))['total_quantity'] or 0
 
-		items_per_page = 10
-		paginator = Paginator(parts, items_per_page)
-		page_number = request.GET.get('page')
-		page_parts = paginator.get_page(page_number)
+            # Get a list of lists where this part exists
+            part_lists = List.objects.filter(listpart__PartID=part)
 
-		return render(request, 'bricks/dashboard.html', {'page_parts': page_parts,'parts': parts, 'moc_parts_ids': moc_parts_ids})
+            # Create a dictionary for this part's aggregated data
+            part_data = {
+                'aggregated_part': part,
+                'aggregated_quantity': aggregated_quantity,
+                'part_lists': part_lists,
+            }
+
+            # Add the part data to the aggregated data list
+            aggregated_data.append(part_data)
+            
+            items_per_page = 50
+            paginator = Paginator(parts, items_per_page)
+            page_number = request.GET.get('page')
+            page_parts = paginator.get_page(page_number)
+
+        return render(request, 'bricks/dashboard.html', {'page_parts': page_parts,'parts': parts, 'aggregated_data': aggregated_data, 'moc_parts_ids': moc_parts_ids})
 
 class SignUpView(View):
 	def get(self, request):
@@ -71,19 +89,43 @@ class SignUpView(View):
 		return render(request, 'bricks/signup.html', {'form': form})
 
 class AddPart(LoginRequiredMixin, CreateView):
-	model = Part
-	form_class = PartForm
-	template_name = 'bricks/add_part.html'
-	success_url = reverse_lazy('dashboard')
+    model = Part
+    form_class = PartForm
+    template_name = 'bricks/add_part.html'
+    success_url = reverse_lazy('dashboard')
 
-	def get_context_data(self, **kwargs):
-		context = super().get_context_data(**kwargs)
-		context['lists'] = List.objects.all()
-		return context
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['lists'] = List.objects.all()
+        return context
 
-	def form_valid(self, form):
-		form.instance.user = self.request.user
-		return super().form_valid(form)
+    def form_valid(self, form):
+        item = form.cleaned_data['item']
+        color = form.cleaned_data['color']
+        selected_list = form.cleaned_data['list']
+        quantity = form.cleaned_data['quantity']
+
+        # Get the currently logged-in user
+        user = self.request.user
+
+        # Check if the part already exists
+        try:
+            part = Part.objects.get(ItemID=item, ColorID=color)
+        except Part.DoesNotExist:
+            # If it doesn't exist, create it
+            part = Part.objects.create(ItemID=item, ColorID=color, user=user)
+
+        # Check if the part already exists in the list
+        try:
+            list_part = ListPart.objects.get(ListID=selected_list, PartID=part)
+            # If it exists, update the quantity
+            list_part.Quantity += quantity
+            list_part.save()
+        except ListPart.DoesNotExist:
+            # If it doesn't exist, create it
+            list_part = ListPart.objects.create(ListID=selected_list, PartID=part, Quantity=quantity)
+
+        return redirect(self.success_url)
 
 class EditPart(LoginRequiredMixin, UpdateView):
     model = Part

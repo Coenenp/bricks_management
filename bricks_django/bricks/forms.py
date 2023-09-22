@@ -11,12 +11,14 @@ class UserRegisterForm(UserCreationForm):
 		fields = ['username', 'email', 'password1', 'password2']
 
 class PartForm(forms.ModelForm):
-    item = forms.ModelChoiceField(queryset=Item.objects.all(), initial=0)
-    color = forms.ModelChoiceField(queryset=Color.objects.all(), initial=0)
-    list = forms.ModelChoiceField(queryset=List.objects.all(), initial=0)
+    item = forms.ModelChoiceField(queryset=Item.objects.all(), empty_label=None, required=True)
+    color = forms.ModelChoiceField(queryset=Color.objects.all(), empty_label=None, required=True)
+    list = forms.ModelChoiceField(queryset=List.objects.all(), empty_label=None, required=True)
+    quantity = forms.IntegerField(min_value=1, required=True)
+
     class Meta:
         model = Part
-        fields = ['item', 'color', 'list']
+        fields = ['item', 'color', 'list', 'quantity'] 
 
 class ExcelUploadForm(forms.Form):
     excel_file = forms.FileField(label='Select an Excel file')
