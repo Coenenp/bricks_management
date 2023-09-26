@@ -17,7 +17,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'Total items without ImageReference: {items_without_large_image_reference.count()}'))
         self.stdout.write(self.style.SUCCESS(f'Total items with InternalURL null: {items_with_large_internal_url.count()}'))
 
-        items = Item.objects.filter(LargeImageReference__isnull=False, LargeInternalURL__isnull=True)
+        items = Item.objects.filter(LargeImageReference__isnull=False)#, LargeInternalURL__isnull=True)
         downloaded_large_images_dir = os.path.join(settings.MEDIA_ROOT, 'downloaded_large_images')
         
         # Check if the download directory exists, and create it if not

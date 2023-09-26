@@ -17,82 +17,181 @@
             {% endfor %}
         </div>
     {% endif %}
+    
     <div class="row">
         <div class="col-md-10 col-12 mx-auto mt-5">
             <div class="d-flex justify-content-end">
                 <a href="{% url 'add-part' %}" class="btn btn-primary">+</a>
             </div>
-
-            <table class="table table-hover table-striped">
-                <thead>
-                <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">ItemID</th>
-                    <th scope="col">Image</th>
-                    <th scope="col">Color</th>
-                    <th scope="col">Qty</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">Subtype</th>
-                    <th scope="col">List</th>
-                    <th scope="col">Category</th>
-                    <th scope="col"></th>
-                    <th scope="col"></th>
-                </tr>
-                </thead>
-                <tbody>
-                {% if parts|length == 0 %}
+            {% if aggregated_view %}
+                <!-- Display Aggregated View -->
+                <table class="table table-hover table-striped">
+                    <thead>
                     <tr>
-                        <th scope="row">-</th>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td></td>
-                        <td></td>
+                        <th scope="col">ID</th>
+                        <th scope="col">ItemID</th>
+                        <th scope="col">Image</th>
+                        <th scope="col">Color</th>
+                        <th scope="col">Qty</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Subtype</th>
+                        <th scope="col">Lists</th>
+                        <th scope="col"></th>
+                        <th scope="col"></th>
                     </tr>
-                {% endif %}
-
-                {% for part in parts %}
-                    {% for list_part in part.listpart_set.all %}
+                    </thead>
+                    <tbody>
+                    {% if aggregated_data|length == 0 %}
                         <tr>
-                            <th scope="row">{{ part.PartID }}</th>
-                            <td>{{ part.ItemID }}</td>
+                            <th scope="row">-</th>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    {% endif %}
+
+                    {% for part_data in aggregated_data %}
+                        <tr>
+                            <th scope="row">{{ part_data.aggregated_part.PartID }}</th>
+                            <td>{{ part_data.aggregated_part.ItemID }}</td>
                             <td>
-                                <img src="{{ part.ImageReference }}" alt="{{ part.ItemID.Description }}"
+                                {% if item.InternalURL %}
+                                    <img src="{{ part_data.aggregated_part.InternalURL }}" alt="{{ part_data.aggregated_part.ItemID.Description }}"
                                     class="img-fluid" style="max-width: 50px;">
+                                {% else %}
+                                    - No Image -
+                                {% endif %}   
                             </td>
                             <td>
                                 <div class="color-swatch"
-                                    style="background-color: {{ part.ColorID.RGB }}; padding: 5px; text-align: center;"
+                                    style="background-color: {{ part_data.aggregated_part.ColorID.RGB }}; padding: 5px; text-align: center;"
                                     data-toggle="tooltip"
                                     data-placement="top"
-                                    title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part.ColorID.ColorID }}.png' alt='Color Image' width: 110px; height: 90px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
+                                    title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part_data.aggregated_part.ColorID.ColorID }}.png' alt='Color Image' width: 110px; height: 90px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
                                     data-html="true">
                                     <div class="color-num"
-                                        style="background: {{ part.ColorID.RGB }}; color: {{ part.ColorID.RGB|is_dark_color }}">{{ part.ColorID.Name }}</div>
+                                        style="background: {{ part_data.aggregated_part.ColorID.RGB }}; color: {{ part_data.aggregated_part.ColorID.RGB|is_dark_color }}">{{ part_data.aggregated_part.ColorID.Name }}</div>
                                 </div>
                             </td>
-                            <td>{{ list_part.Quantity }}</td>
-                            <td>{{ part.ItemID.TypeID.Name }}</td>
-                            <td>{{ part.ItemID.SubtypeID.Name }}</td>
-                            <td>{{ list_part.ListID.Name }}</td>
-                            {% if part.PartID in moc_parts_ids %}
-                                <td class="text-danger">{{ list_part.ListID.CategoryID.Name }}</td>
-                            {% else %}
-                                <td class="text-success">{{ list_part.ListID.CategoryID.Name }}</td>
-                            {% endif %}
-                            <td><a href="{% url 'edit-part' part.PartID %}" class="btn btn-outline-secondary">Edit</a></td>
-                            <td><a href="{% url 'delete-part' part.PartID %}" class="btn btn-secondary">Delete</a>
+                            <td>{{ part_data.aggregated_quantity }}</td>
+                            <td>{{ part_data.aggregated_part.ItemID.TypeID.Name }}</td>
+                            <td>{{ part_data.aggregated_part.ItemID.SubtypeID.Name }}</td>
+                            <td>
+                                {% for list in part_data.part_lists.all %}
+                                    {% if list.CategoryID.Name == 'MOC Part' %}
+                                        <span class="text-danger">{{ list.Name }}</span><br>
+                                    {% else %}
+                                        <span class="text-success">{{ list.Name }}</span><br>
+                                    {% endif %}
+                                {% endfor %}
                             </td>
+                            <td><a href="{% url 'edit-part' part_data.aggregated_part.PartID %}" class="btn btn-outline-secondary">Edit</a></td>
+                            <td><a href="{% url 'delete-part' part_data.aggregated_part.PartID %}" class="btn btn-secondary">Delete</a></td>
                         </tr>
                     {% endfor %}
-                {% endfor %}
-                </tbody>
-            </table>
+
+                    </tbody>
+                </table>
+            <!-- Pagination links -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_aggregated_data.has_previous %}
+                        <a href="?aggregated_page=1">&laquo; first</a>
+                        <a href="?aggregated_page={{ page_aggregated_data.previous_page_number }}">previous</a>
+                    {% endif %}
+
+                    <span class="current-page">
+                        Page {{ page_aggregated_data.number }} of {{ page_aggregated_data.paginator.num_pages }}
+                    </span>
+
+                    {% if page_aggregated_data.has_next %}
+                        <a href="?aggregated_page={{ page_aggregated_data.next_page_number }}">next</a>
+                        <a href="?aggregated_page={{ page_aggregated_data.paginator.num_pages }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+            {% else %}
+                <!-- Display Non-Aggregated View -->            
+                <table class="table table-hover table-striped">
+                    <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">ItemID</th>
+                        <th scope="col">Image</th>
+                        <th scope="col">Color</th>
+                        <th scope="col">Qty</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Subtype</th>
+                        <th scope="col">List</th>
+                        <th scope="col">Category</th>
+                        <th scope="col"></th>
+                        <th scope="col"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if parts|length == 0 %}
+                        <tr>
+                            <th scope="row">-</th>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    {% endif %}
+
+                    {% for part in parts %}
+                        {% for list_part in part.listpart_set.all %}
+                            <tr>
+                                <th scope="row">{{ part.PartID }}</th>
+                                <td>{{ part.ItemID }}</td>
+                                <td>
+                                    {% if item.InternalURL %}
+                                        <img src="{{ part.ImageReference }}" alt="{{ part.ItemID.Description }}" class="img-fluid" style="max-width: 50px;">
+                                    {% else %}
+                                        - No Image -
+                                    {% endif %}       
+                                </td>
+                                <td>
+                                    <div class="color-swatch"
+                                        style="background-color: {{ part.ColorID.RGB }}; padding: 5px; text-align: center;"
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part.ColorID.ColorID }}.png' alt='Color Image' width: 110px; height: 90px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
+                                        data-html="true">
+                                        <div class="color-num"
+                                            style="background: {{ part.ColorID.RGB }}; color: {{ part.ColorID.RGB|is_dark_color }}">{{ part.ColorID.Name }}</div>
+                                    </div>
+                                </td>
+                                <td>{{ list_part.Quantity }}</td>
+                                <td>{{ part.ItemID.TypeID.Name }}</td>
+                                <td>{{ part.ItemID.SubtypeID.Name }}</td>
+                                <td>{{ list_part.ListID.Name }}</td>
+                                {% if list_part.ListID.CategoryID.Name == 'MOC Part' %}
+                                    <td class="text-danger">{{ list_part.ListID.CategoryID.Name }}</td>
+                                {% else %}
+                                    <td class="text-success">{{ list_part.ListID.CategoryID.Name }}</td>
+                                {% endif %}
+                                <td><a href="{% url 'edit-part' part.PartID %}" class="btn btn-outline-secondary">Edit</a></td>
+                                <td><a href="{% url 'delete-part' part.PartID %}" class="btn btn-secondary">Delete</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+
             <!-- Pagination links -->
             <div class="pagination">
                 <span class="step-links">
@@ -111,6 +210,9 @@
                     {% endif %}
                 </span>
             </div>
+            {% endif %}
+
+            
         </div>
     </div>
 {% endblock content %}

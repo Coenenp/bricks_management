@@ -74,8 +74,8 @@ class ItemAdmin(admin.ModelAdmin):
     display_image.short_description = 'Image'
     
     def local_image(self, obj):
-        if obj.InternalURL:
-            image_url = obj.InternalURL
+        if obj.LargeImageReference:
+            image_url = obj.LargeImageReference
             return format_html('<img src="{}" width="50" height="50" />', image_url)
         else:
             return ''

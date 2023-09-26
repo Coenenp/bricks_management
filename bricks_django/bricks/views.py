@@ -1,4 +1,5 @@
 import pandas as pd
+from django.db import models
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.http import JsonResponse
@@ -37,7 +38,13 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
     def get(self, request):
         parts = Part.objects.order_by('ItemID')
         aggregated_data = []
+        aggregated_view = ''  # or ''
         moc_parts = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID')
+
+        items_per_page = 5
+        paginator_parts = Paginator(parts, items_per_page)
+        page_number = request.GET.get('page', 1)
+        page_parts = paginator_parts.get_page(page_number)
 
         if moc_parts.count() > 0:
             messages.info(request, f'{moc_parts.count()} are MOC parts')
@@ -60,13 +67,14 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
 
             # Add the part data to the aggregated data list
             aggregated_data.append(part_data)
-            
-            items_per_page = 50
-            paginator = Paginator(parts, items_per_page)
-            page_number = request.GET.get('page')
-            page_parts = paginator.get_page(page_number)
 
-        return render(request, 'bricks/dashboard.html', {'page_parts': page_parts,'parts': parts, 'aggregated_data': aggregated_data, 'moc_parts_ids': moc_parts_ids})
+        # Create a separate paginator for aggregated_data
+        aggregated_items_per_page = 5
+        paginator_aggregated = Paginator(aggregated_data, aggregated_items_per_page)
+        aggregated_page_number = request.GET.get('aggregated_page', 1)
+        page_aggregated_data = paginator_aggregated.get_page(aggregated_page_number)
+
+        return render(request, 'bricks/dashboard.html', {'page_parts': page_parts, 'parts': parts, 'aggregated_data': aggregated_data, 'page_aggregated_data': page_aggregated_data, 'aggregated_view': aggregated_view, 'moc_parts_ids': moc_parts_ids})
 
 class SignUpView(View):
 	def get(self, request):
