@@ -1,7 +1,27 @@
 {% extends 'bricks/base.html' %}
+{% load fontawesome_5 %}
+{% load static %}
 {% load custom_filters %}
-
 {% block content %}
+
+    <div class="d-flex justify-content-end mb-2">
+        <button
+            id="toggleAggregatedViewButton"
+            class="btn btn-primary"
+            data-url="{% url 'toggleaggregatedview' %}"
+            data-csrf-token="{{ csrf_token }}"
+            data-view-mode="{% if request.session.view_mode == 'aggregated_view' %}aggregated_view{% else %}part_view{% endif %}"
+        >
+            {% if request.session.view_mode == 'aggregated_view' %}
+                <i class="fas fa-plus-square"></i> <!-- Icon for aggregated view -->
+            {% else %}
+                <i class="fas fa-minus-square"></i> <!-- Icon for parts view -->
+            {% endif %}
+        </button>
+
+        <script src="{% static 'js/toggle_aggregated_view_button.js' %}"></script>
+    </div>
+
     {% if messages %}
         <div class="row mt-3">
             {% for message in messages %}
@@ -23,7 +43,7 @@
             <div class="d-flex justify-content-end">
                 <a href="{% url 'add-part' %}" class="btn btn-primary">+</a>
             </div>
-            {% if aggregated_view %}
+            {% if request.session.view_mode == 'aggregated_view' %}
                 <!-- Display Aggregated View -->
                 <table class="table table-hover table-striped">
                     <thead>
@@ -184,8 +204,7 @@
                                     <td class="text-success">{{ list_part.ListID.CategoryID.Name }}</td>
                                 {% endif %}
                                 <td><a href="{% url 'edit-part' part.PartID %}" class="btn btn-outline-secondary">Edit</a></td>
-                                <td><a href="{% url 'delete-part' part.PartID %}" class="btn btn-secondary">Delete</a>
-                                </td>
+                                <td><a href="{% url 'delete-part-list' part.PartID list_part.ListID.ListID list_part.ListID.Name %}" class="btn btn-secondary">Delete</a></td>
                             </tr>
                         {% endfor %}
                     {% endfor %}

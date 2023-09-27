@@ -20,7 +20,6 @@ class ToggleView(View):
     http_method_names = ['post']  # Allow only POST requests
 
     def post(self, request):
-        # Your view logic here
         if 'view_mode' in request.session:
             if request.session['view_mode'] == 'list':
                 request.session['view_mode'] = 'array'
@@ -31,14 +30,28 @@ class ToggleView(View):
 
         return JsonResponse({'new_mode': request.session['view_mode']})
 
+class ToggleAggregatedView(View):
+    http_method_names = ['post']  # Allow only POST requests
+
+    def post(self, request):
+        if 'view_mode' in request.session:
+            if request.session['view_mode'] == 'part_view':
+                request.session['view_mode'] = 'aggregated_view'
+            else:
+                request.session['view_mode'] = 'part_view'
+        else:
+            request.session['view_mode'] = 'aggregated_view'  # Default to aggregated view
+
+        return JsonResponse({'new_mode': request.session['view_mode']})
+    
 class Index(TemplateView):
     template_name = 'bricks/index.html'
-    
+
 class Dashboard(LoginRequiredMixin, View, Paginator):
     def get(self, request):
+        view_mode = request.session.get('view_mode', 'aggregated_view')
         parts = Part.objects.order_by('ItemID')
         aggregated_data = []
-        aggregated_view = ''  # or ''
         moc_parts = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID')
 
         items_per_page = 5
@@ -74,7 +87,17 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
         aggregated_page_number = request.GET.get('aggregated_page', 1)
         page_aggregated_data = paginator_aggregated.get_page(aggregated_page_number)
 
-        return render(request, 'bricks/dashboard.html', {'page_parts': page_parts, 'parts': parts, 'aggregated_data': aggregated_data, 'page_aggregated_data': page_aggregated_data, 'aggregated_view': aggregated_view, 'moc_parts_ids': moc_parts_ids})
+        # Include the 'view_mode' in the context
+        context = {
+            'page_parts': page_parts,
+            'parts': parts,
+            'aggregated_data': aggregated_data,
+            'page_aggregated_data': page_aggregated_data,
+            'moc_parts_ids': moc_parts_ids,
+            'view_mode': view_mode,
+        }
+
+        return render(request, 'bricks/dashboard.html', context)
 
 class SignUpView(View):
 	def get(self, request):
@@ -191,6 +214,48 @@ class DeletePart(LoginRequiredMixin, DeleteView):
 	template_name = 'bricks/delete_part.html'
 	success_url = reverse_lazy('dashboard')
 	context_object_name = 'part'
+
+
+from django.shortcuts import render
+
+class DeletePartFromList(LoginRequiredMixin, View):
+    template_name = 'bricks/delete_part_list.html'  # Use the confirmation template
+
+    def get(self, request, *args, **kwargs):
+        # Retrieve the part and list information for confirmation
+        part_id = kwargs['pk']
+        list_id = kwargs['list_id']
+        list_name = kwargs['list_name']
+        part = get_object_or_404(Part, PartID=part_id)
+        
+        context = {
+            'part': part,
+            'list_id': list_id,
+            'list_name': list_name,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        # Handle the post request to delete the part from the list
+        part_id = request.POST['part_id']
+        list_id = request.POST['list_id']
+        list_name = request.POST['list_name']
+
+        part = get_object_or_404(Part, PartID=part_id)
+        list_part = get_object_or_404(ListPart, PartID=part, ListID=list_id)
+
+        # Delete the ListPart entry
+        list_part.delete()
+        messages.success(request, f'Part {part.ItemID} removed from list {list_name}')
+        
+        # If this was the last ListPart entry for this Part, you might want to delete the Part as well
+        other_list_parts = ListPart.objects.filter(PartID=part)
+        if not other_list_parts.exists():
+            # Delete the Part if it's not associated with any other lists
+            part.delete()
+            messages.success(request, f'Successfully removed part {part.ItemID}')
+
+        return redirect('dashboard')
 
 class ListView(LoginRequiredMixin, View):
 	def get(self, request):

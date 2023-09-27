@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     toggleViewButton.addEventListener("click", function() {
         // Send an AJAX request to update the view mode
-         fetch(toggleViewUrl, {
+        fetch(toggleViewUrl, {
             method: "POST",
             headers: {
                 "X-CSRFToken": csrfToken,
@@ -23,7 +23,6 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(data => {
             // Update the view mode on the client side
             currentViewMode = data.new_mode;
-            //document.getElementById("viewModeDisplay").textContent = currentViewMode; // Update the displayed view mode
             toggleViewButton.setAttribute("data-view-mode", currentViewMode);
             toggleViewButton.innerHTML = currentViewMode === "array" ?
                 '<i class="fas fa-th-large"></i>' : '<i class="fas fa-list"></i>';
