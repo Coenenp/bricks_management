@@ -85,7 +85,7 @@ class List(models.Model):
     Description = models.CharField(max_length=255)
     
     def __str__(self):
-        return f'{self.Name}'
+        return self.Name
 
 class ListPart(models.Model):
     ListPartID = models.AutoField(primary_key=True)
@@ -100,3 +100,46 @@ class ListPart(models.Model):
 
     def __str__(self):
         return f'{self.ListID} - {self.PartID} - {self.Quantity}'
+
+class SetPart(models.Model):
+    SetPartID = models.AutoField(primary_key=True)
+    ItemID = models.ForeignKey(Item, on_delete=models.CASCADE)
+    ColorID = models.ForeignKey(Color, on_delete=models.CASCADE)
+    ImageReference = models.CharField(max_length=255, null=True, blank=True) 
+    date_created = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    # Add the unique_together constraint
+    class Meta:
+        unique_together = ('ItemID', 'ColorID')
+    
+    def __str__(self):
+        return f'{self.ItemID} - {self.ColorID}'
+
+
+class SetList(models.Model):
+    YEAR_CHOICES = [(r, r) for r in range(1950, timezone.now().year + 1)]
+    
+    SetListID = models.AutoField(primary_key=True)
+    Name = models.CharField(max_length=255, unique=True)
+    Description = models.CharField(max_length=255)
+    Year = models.IntegerField(choices=YEAR_CHOICES, default=timezone.now().year)
+    BuildInstructions = models.CharField(max_length=255, null=True, blank=True) 
+    
+    def __str__(self):
+        return self.Name
+
+class SetListPart(models.Model):
+    SetListPartID = models.AutoField(primary_key=True)
+    SetListID = models.ForeignKey(List, on_delete=models.CASCADE)
+    SetPartID = models.ForeignKey(Part, on_delete=models.CASCADE)
+    Quantity = models.IntegerField()
+    date_updated = models.DateTimeField(default=timezone.now)
+    
+    # Add the unique_together constraint
+    class Meta:
+        unique_together = ('SetListID', 'SetPartID')
+
+    def __str__(self):
+        return f'{self.SetListID} - {self.SetPartID} - {self.Quantity}'
+

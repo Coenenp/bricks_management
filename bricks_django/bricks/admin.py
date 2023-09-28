@@ -4,12 +4,16 @@ from django.utils.html import format_html
 from django.http import HttpResponseRedirect
 from django.contrib import admin
 from django.conf import settings
-from .models import Part, List, ListPart, Color, Item, Type, Category, ItemAlias
+from .models import Part, List, ListPart, Color, Item, Type, Category, ItemAlias, SetList, SetPart, SetListPart
 
 admin.site.register(Part)
 admin.site.register(List)
 admin.site.register(ListPart)
 admin.site.register(Category)
+admin.site.register(ItemAlias)
+admin.site.register(SetList)
+admin.site.register(SetListPart)
+admin.site.register(SetPart)
 
 class CustomItemAdminForm(forms.ModelForm):
     class Meta:
