@@ -2,6 +2,7 @@ import os
 import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.core.files import File
 from bricks.models import Item
 
 class Command(BaseCommand):
@@ -32,26 +33,32 @@ class Command(BaseCommand):
         
         for item in items:
             image_reference = item.ImageReference
-            image_name = os.path.basename(image_reference)
-            
-            try:
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-                }
-                response = requests.get(image_reference, headers=headers)
-                
-                if response.status_code == 200:
-                    filename = os.path.basename(image_reference)
-                    local_path = os.path.join(downloaded_images_dir, filename)
 
-                    with open(local_path, 'wb') as f:
-                        for chunk in response.iter_content(8192):
-                            f.write(chunk)
+            if image_reference is not None:
+                image_name = os.path.basename(image_reference)
 
-                    item.InternalURL = f'downloaded_images/{filename}'
-                    item.save()
-                    self.stdout.write(self.style.SUCCESS(f'Successfully downloaded {filename}'))
-                else:
-                    self.stdout.write(self.style.ERROR(f'Failed to download {image_reference}'))
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f'Error: {str(e)}'))
+                try:
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+                    }
+                    response = requests.get(image_reference, headers=headers)
+
+                    if response.status_code == 200:
+                        filename = os.path.basename(image_reference)
+                        local_path = os.path.join(downloaded_images_dir, filename)
+
+                        with open(local_path, 'wb') as f:
+                            for chunk in response.iter_content(8192):
+                                f.write(chunk)
+
+                        # Create a File object and assign it to the InternalURL field
+                        with open(local_path, 'rb') as f:
+                            item.InternalURL.save(filename, File(f))
+                        
+                        self.stdout.write(self.style.SUCCESS(f'Successfully downloaded {filename}'))
+                    else:
+                        self.stdout.write(self.style.ERROR(f'Failed to download {image_reference}'))
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f'Error: {str(e)}'))
+            else:
+                self.stdout.write(self.style.ERROR(f'ImageReference is None for item with pk={item.pk}'))

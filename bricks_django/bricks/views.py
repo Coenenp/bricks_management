@@ -1,8 +1,8 @@
 import pandas as pd
 from django.db import models
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
-from django.http import JsonResponse
+from django.urls import reverse, reverse_lazy
+from django.http import JsonResponse, HttpResponseRedirect
 from django.core.paginator import Paginator
 from django.views.generic import TemplateView, View, CreateView, UpdateView, DeleteView
 from django.views.decorators.csrf import csrf_exempt
@@ -10,8 +10,8 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.shortcuts import redirect
-from django.db.models import F, Q
-from .forms import UserRegisterForm, PartForm, ExcelUploadForm, QuantityForm
+from django.db.models import Sum, F, Q
+from .forms import UserRegisterForm, PartForm, PartListForm, ExcelUploadForm, QuantityForm
 from .models import Part, List, Item, Type, Color, ListPart, ItemAlias
 from collections import defaultdict
 from bricks_django.settings import MOC_PART
@@ -53,6 +53,7 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
         parts = Part.objects.order_by('ItemID')
         aggregated_data = []
         moc_parts = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID')
+        total_moc_quantity = ListPart.objects.filter(ListID__CategoryID__pk=MOC_PART).aggregate(total_quantity=Sum('Quantity'))['total_quantity']
 
         items_per_page = 5
         paginator_parts = Paginator(parts, items_per_page)
@@ -60,7 +61,7 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
         page_parts = paginator_parts.get_page(page_number)
 
         if moc_parts.count() > 0:
-            messages.info(request, f'{moc_parts.count()} are MOC parts')
+            messages.info(request, f'Total quantity of MOC parts: {total_moc_quantity}')
 
         moc_parts_ids = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID').values_list('PartID', flat=True)
 
@@ -157,6 +158,41 @@ class AddPart(LoginRequiredMixin, CreateView):
             list_part = ListPart.objects.create(ListID=selected_list, PartID=part, Quantity=quantity)
 
         return redirect(self.success_url)
+    
+class AddListPart(LoginRequiredMixin, CreateView):
+    model = ListPart
+    form_class = PartListForm
+    template_name = 'bricks/add_list_part.html'
+
+    def form_valid(self, form):
+        part_id = self.kwargs['pk']
+        part = get_object_or_404(Part, pk=part_id)
+
+        # Get the selected list from the form
+        selected_list = form.cleaned_data['list']
+
+        # Create a new ListPart instance with Part, List, and Quantity
+        list_part = ListPart(
+            ListID=selected_list,
+            PartID=part,
+            Quantity=form.cleaned_data['quantity']
+        )
+
+        # Save the ListPart instance
+        list_part.save()
+
+        # Redirect back to the referring URL
+        referring_url = self.request.session.get('referring_url')
+        if referring_url:
+            return redirect(referring_url)
+        else:
+            return redirect('itemview')
+
+    def get_form_kwargs(self):
+        # Pass the part_id to the form during initialization
+        kwargs = super().get_form_kwargs()
+        kwargs['part_id'] = self.kwargs['pk']
+        return kwargs
 
 class EditPart(LoginRequiredMixin, UpdateView):
     model = Part
@@ -194,6 +230,10 @@ class EditPart(LoginRequiredMixin, UpdateView):
         context['previous_part'] = previous_part
         context['next_part'] = next_part
 
+        # Set the referring URL in the session
+        referring_url = reverse('edit-part', args=[part.pk])
+        self.request.session['referring_url'] = referring_url
+
         return context
     
 class EditPartQuantity(View):
@@ -214,9 +254,6 @@ class DeletePart(LoginRequiredMixin, DeleteView):
 	template_name = 'bricks/delete_part.html'
 	success_url = reverse_lazy('dashboard')
 	context_object_name = 'part'
-
-
-from django.shortcuts import render
 
 class DeletePartFromList(LoginRequiredMixin, View):
     template_name = 'bricks/delete_part_list.html'  # Use the confirmation template
@@ -293,15 +330,16 @@ class ItemDetailView(View):
         colors_by_type = defaultdict(list)
         lists = List.objects.all()
 
-        previous_item_id = Item.objects.filter(pk__lt=item_id).order_by('-pk').first()
-        next_item_id = Item.objects.filter(pk__gt=item_id).order_by('pk').first()
+        previous_item = Item.objects.filter(pk__lt=item_id).order_by('-pk').first()
+        next_item = Item.objects.filter(pk__gt=item_id).order_by('pk').first()
+
         # If there's no next item, wrap around to the first item
-        if not next_item_id:
-            next_item_id = Item.objects.order_by('pk').first()
+        if not next_item:
+            next_item = Item.objects.order_by('pk').first()
 
         # If there's no previous item, wrap around to the last item
-        if not previous_item_id:
-            previous_item_id = Item.objects.order_by('-pk').first()
+        if not previous_item:
+            previous_item = Item.objects.order_by('-pk').first()
             
         # Iterate through your colors and group them by ColorType
         for color in colors:
@@ -314,8 +352,8 @@ class ItemDetailView(View):
                 'item': item, 
                 'colors_by_type': dict(colors_by_type), 
                 'lists': lists,
-                'previous_item_id': previous_item_id.pk,
-                'next_item_id': next_item_id.pk,
+                'previous_item_id': previous_item.pk if previous_item else None,
+                'next_item_id': next_item.pk if next_item else None,
                 'initial_color_id': initial_color_id,
             },
         )

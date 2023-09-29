@@ -2,6 +2,7 @@ import os
 import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.core.files import File
 from bricks.models import Item
 
 class Command(BaseCommand):
@@ -13,11 +14,11 @@ class Command(BaseCommand):
         items_without_large_image_reference = Item.objects.filter(LargeImageReference__isnull=True)
         items_with_large_internal_url = Item.objects.filter(LargeInternalURL__isnull=True)
 
-        self.stdout.write(self.style.SUCCESS(f'Total items with ImageReference: {items_with_large_image_reference.count()}'))
-        self.stdout.write(self.style.SUCCESS(f'Total items without ImageReference: {items_without_large_image_reference.count()}'))
-        self.stdout.write(self.style.SUCCESS(f'Total items with InternalURL null: {items_with_large_internal_url.count()}'))
+        self.stdout.write(self.style.SUCCESS(f'Total items with LargeImageReference: {items_with_large_image_reference.count()}'))
+        self.stdout.write(self.style.SUCCESS(f'Total items without LargeImageReference: {items_without_large_image_reference.count()}'))
+        self.stdout.write(self.style.SUCCESS(f'Total items with LargeInternalURL null: {items_with_large_internal_url.count()}'))
 
-        items = Item.objects.filter(LargeImageReference__isnull=False)#, LargeInternalURL__isnull=True)
+        items = Item.objects.filter(LargeImageReference__isnull=False)
         downloaded_large_images_dir = os.path.join(settings.MEDIA_ROOT, 'downloaded_large_images')
         
         # Check if the download directory exists, and create it if not
@@ -32,6 +33,11 @@ class Command(BaseCommand):
         
         for item in items:
             large_image_reference = item.LargeImageReference
+
+            # Skip processing if large_image_reference is None
+            if large_image_reference is None:
+                self.stdout.write(self.style.ERROR(f'LargeImageReference is None for item with pk={item.pk}'))
+                continue
             
             try:
                 headers = {
@@ -47,8 +53,10 @@ class Command(BaseCommand):
                         for chunk in response.iter_content(8192):
                             f.write(chunk)
 
-                    item.LargeInternalURL = f'downloaded_large_images/{filename}'
-                    item.save()
+                    # Create a File object and assign it to the LargeInternalURL field
+                    with open(local_path, 'rb') as f:
+                        item.LargeInternalURL.save(filename, File(f))
+                    
                     self.stdout.write(self.style.SUCCESS(f'Successfully downloaded {filename}'))
                 else:
                     self.stdout.write(self.style.ERROR(f'Failed to download {large_image_reference}'))

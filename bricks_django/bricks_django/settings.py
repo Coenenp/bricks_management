@@ -155,4 +155,4 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 LOGIN_REDIRECT_URL = '/dashboard'
 LOGIN_URL = 'login'
 
-MOC_PART = 2
+MOC_PART = 3

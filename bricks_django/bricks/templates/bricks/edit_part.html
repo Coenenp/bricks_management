@@ -94,6 +94,9 @@
 
         <div class="row mt-3">
             <div class="col-md-12 col-12 mx-auto">
+                <div class="d-flex justify-content-end">
+                    <a href="{% url 'add-list-part' pk=object.pk %}?next={{ request.path }}" class="btn btn-primary">+</a>
+                </div>
                 <h2>Part in Lists</h2>
                 <form method="post" onsubmit="event.preventDefault(); submitForm();">
                     {% csrf_token %}
