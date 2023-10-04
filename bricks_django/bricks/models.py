@@ -57,11 +57,15 @@ class Item(models.Model):
 
 class ItemAlias(models.Model):
     AliasID = models.AutoField(primary_key=True)
-    Item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='aliases')
+    Item = models.ForeignKey('Item', on_delete=models.CASCADE, related_name='aliases')
     AliasName = models.CharField(max_length=15)
 
+    class Meta:
+        verbose_name_plural = 'aliases'
+        unique_together = ('Item', 'AliasName')
+
     def __str__(self):
-        return self.AliasName
+        return f'{self.AliasName} - {self.Item}'
 
 class Part(models.Model):
     PartID = models.AutoField(primary_key=True)

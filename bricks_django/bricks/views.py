@@ -438,13 +438,10 @@ class ImportItemsView(View):
                         item = Item(Name=name)
                         import_report.append(f'Created: {name}')
 
-                    # Check if item name exists in ItemAlias table
-                    #item_alias, created = ItemAlias.objects.get_or_create(AliasName=name, Item=item)
-                    
                     # Check if item name exists in ItemAlias table                    
-                    #if ItemAlias.objects.filter(AliasName=name).exists():
-                    #    import_report.append(f'Skipped: {name} (Item alias already exists)')
-                    #    continue
+                    if ItemAlias.objects.filter(AliasName=name).exists():
+                        import_report.append(f'Skipped: {name} (Item alias already exists)')
+                        continue
 
                     try:
                         item_type = Type.objects.get(Name=type_name, ParentID=0)
@@ -458,8 +455,8 @@ class ImportItemsView(View):
                         item.Description = description
                     if image_reference and (not item.ImageReference):
                         item.ImageReference = image_reference
-                    if large_image_reference and (not item.LargeImageReference):
-                        item.LargeImageReference = large_image_reference
+                    #if large_image_reference and (not item.LargeImageReference):
+                    item.LargeImageReference = large_image_reference
 
                     # Set Type and Subtype
                     item.TypeID = item_type
