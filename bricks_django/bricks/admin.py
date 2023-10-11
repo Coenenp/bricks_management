@@ -95,9 +95,9 @@ class ItemAdmin(admin.ModelAdmin):
     def upload_excel_view(self, request):
         return HttpResponseRedirect(reverse('admin:import_items'))
 
-    list_filter = [ParentTypeFilter] 
-    search_fields = ['Name', 'Description', 'TypeID', 'SubtypeID']
-    ordering = ['ItemID']  
+    list_filter = [ParentTypeFilter]
+    search_fields = ['Name', 'Description']
+    ordering = ['ItemID']
 
 class ColorAdmin(admin.ModelAdmin):
     list_display = ['Name', 'BricklinkColorID', 'WebrickColorID', 'ColorType', 'color_swatch']

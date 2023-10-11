@@ -519,6 +519,9 @@ class ImportPartsView(View):
                         ColorID=color,
                         defaults={'ImageReference': image_reference}
                     )
+                    # Check if a new Part was created
+                    if created:
+                        import_report.append(f'New Part created: {item_name}')
 
                     # Try to get an existing ListPart entry
                     listpart = ListPart.objects.filter(ListID=list, PartID=part).first()
