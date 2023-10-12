@@ -39,11 +39,11 @@ class Item(models.Model):
     Name = models.CharField(max_length=15, unique=True)
     Description = models.CharField(max_length=255)
     ImageReference = models.CharField(max_length=255, null=True, blank=True)
-    LargeImageReference = models.CharField(max_length=255, null=True, blank=True) 
+    WebrickImageReference = models.CharField(max_length=255, null=True, blank=True) 
     TypeID = models.ForeignKey(Type, default=1, on_delete=models.CASCADE)
     SubtypeID = models.ForeignKey(Type, on_delete=models.CASCADE, related_name='subtype_items')
     InternalURL = models.ImageField(upload_to='downloaded_images/', null=True, blank=True)
-    LargeInternalURL = models.ImageField(upload_to='downloaded_large_images/', null=True, blank=True)  
+    WebrickInternalURL = models.ImageField(upload_to='downloaded_webrick_images/', null=True, blank=True)  
 
     def clean(self):
         if self.SubtypeID.ParentID != 0 and self.TypeID.TypeID != self.SubtypeID.ParentID:

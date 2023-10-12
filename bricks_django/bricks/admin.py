@@ -78,8 +78,8 @@ class ItemAdmin(admin.ModelAdmin):
     display_image.short_description = 'Image'
     
     def local_image(self, obj):
-        if obj.LargeImageReference:
-            image_url = obj.LargeImageReference
+        if obj.WebrickImageReference:
+            image_url = obj.WebrickImageReference
             return format_html('<img src="{}" width="50" height="50" />', image_url)
         else:
             return ''

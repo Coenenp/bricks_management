@@ -174,7 +174,7 @@
                         <div class="card">
                             <div class="card-img-container item-clickable" data-item-id="{{ item.ItemID }}">
                                 <div class="aspect-ratio-container"> <!-- Create an aspect ratio container -->
-                                    <img src="{% if item.LargeInternalURL %}{{ item.LargeInternalURL.url }}{% endif %}" alt="{{ item.Name }}" class="card-img aspect-ratio-item">
+                                    <img src="{% if item.WebrickInternalURL %}{{ item.WebrickInternalURL.url }}{% endif %}" alt="{{ item.Name }}" class="card-img aspect-ratio-item">
                                 </div>
                             </div>
                             <div class="card-body">

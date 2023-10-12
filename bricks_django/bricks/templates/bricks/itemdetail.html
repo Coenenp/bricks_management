@@ -71,16 +71,16 @@
         <!-- Left column for item image -->
         <div class="col-md-4">
             <div class="d-flex justify-content-center align-items-center" style="height: 50vh; border: 1px solid; border-radius: 10px; padding: 10px; box-shadow: 0px 0px 4px;">
-                {% if item.LargeInternalURL %}
+                {% if item.WebrickInternalURL %}
                     <img
-                        src="{{ item.LargeInternalURL.url }}"
+                        src="{{ item.WebrickInternalURL.url }}"
                         alt="{{ item.Name }}"
                         class="img-fluid"
                         style="max-width: 500px; max-height: 500px;"
-                        data-magnify-src="{{ item.LargeInternalURL.url }}"
+                        data-magnify-src="{{ item.WebrickInternalURL.url }}"
                         />
                 {% else %}
-                    <!-- Handle the case when LargeInternalURL is empty -->
+                    <!-- Handle the case when WebrickInternalURL is empty -->
                     <p>No image available</p>
                 {% endif %}
             </div>

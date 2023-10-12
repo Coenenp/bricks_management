@@ -428,7 +428,7 @@ class ImportItemsView(View):
                     image_reference = row['ImageReference']
                     type_name = row['Type']
                     subtype_name = row['Subtype']
-                    large_image_reference = row['LargeImageReference']
+                    webrick_image_reference = row['WebrickImageReference']
 
                     # Check if item with the same name already exists
                     try:
@@ -455,8 +455,8 @@ class ImportItemsView(View):
                         item.Description = description
                     if image_reference and (not item.ImageReference):
                         item.ImageReference = image_reference
-                    #if large_image_reference and (not item.LargeImageReference):
-                    item.LargeImageReference = large_image_reference
+                    #if webrick_image_reference and (not item.WebrickImageReference):
+                    item.WebrickImageReference = webrick_image_reference
 
                     # Set Type and Subtype
                     item.TypeID = item_type
