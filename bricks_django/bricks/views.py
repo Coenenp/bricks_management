@@ -12,7 +12,7 @@ from django.contrib import messages
 from django.shortcuts import redirect
 from django.db.models import Sum, F, Q
 from .forms import UserRegisterForm, PartForm, PartListForm, ExcelUploadForm, QuantityForm
-from .models import Part, List, Item, Type, Color, ListPart, ItemAlias
+from .models import Part, List, Item, Type, Color, ListPart, ItemAlias, SetList, SetPart, SetListPart
 from collections import defaultdict
 from bricks_django.settings import MOC_PART
 
@@ -55,7 +55,7 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
         moc_parts = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID')
         total_moc_quantity = ListPart.objects.filter(ListID__CategoryID__pk=MOC_PART).aggregate(total_quantity=Sum('Quantity'))['total_quantity']
 
-        items_per_page = 5
+        items_per_page = 50
         paginator_parts = Paginator(parts, items_per_page)
         page_number = request.GET.get('page', 1)
         page_parts = paginator_parts.get_page(page_number)
@@ -83,7 +83,7 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
             aggregated_data.append(part_data)
 
         # Create a separate paginator for aggregated_data
-        aggregated_items_per_page = 5
+        aggregated_items_per_page = 50
         paginator_aggregated = Paginator(aggregated_data, aggregated_items_per_page)
         aggregated_page_number = request.GET.get('aggregated_page', 1)
         page_aggregated_data = paginator_aggregated.get_page(aggregated_page_number)
@@ -206,6 +206,7 @@ class EditPart(LoginRequiredMixin, UpdateView):
 
         # Add the part image to the context
         context['part_image'] = part.ImageReference
+        context['part_name'] = part.ItemID.Name
 
         # Get all lists for this part
         part_lists = part.listpart_set.all()
@@ -322,7 +323,7 @@ class ItemView(LoginRequiredMixin, View):
         }
         return render(request, self.template_name, context)
     
-class ItemDetailView(View):
+class ItemDetailView(LoginRequiredMixin, View):
     def get(self, request, item_id):
         initial_color_id = 1
         item = get_object_or_404(Item, pk=item_id)
@@ -358,7 +359,7 @@ class ItemDetailView(View):
             },
         )
 
-class AddtoList(View):
+class AddtoList(LoginRequiredMixin, View):
     def get(self, request):
         form = QuantityForm()
         return render(request, 'itemdetail.html', {'form': form})
@@ -372,7 +373,7 @@ class AddtoList(View):
             selected_list = form.cleaned_data['selected_list']
             
             # Get the currently logged-in user
-            user = request.user
+            user = self.request.user
 
             try:
                 part = Part.objects.get(ItemID=item, ColorID=color)
@@ -407,7 +408,7 @@ class GetValidSubtypesView(View):
         valid_subtypes = Type.objects.filter(ParentID=type_id).values('TypeID', 'Name')
         return JsonResponse(list(valid_subtypes), safe=False)
 
-class ImportItemsView(View):
+class ImportItemsView(LoginRequiredMixin, View):
     template_name = 'bricks/import_items.html'
     
     def get(self, request):
@@ -470,7 +471,7 @@ class ImportItemsView(View):
 
         return render(request, self.template_name, {'form': form})
 
-class ImportPartsView(View):
+class ImportPartsView(LoginRequiredMixin, View):
     template_name = 'bricks/import_parts.html'
     
     def get(self, request):
@@ -478,6 +479,7 @@ class ImportPartsView(View):
         return render(request, self.template_name, {'form': form})
     
     def post(self, request):
+        user = self.request.user
         form = ExcelUploadForm(request.POST, request.FILES)
         if form.is_valid():
             excel_file = form.cleaned_data['excel_file']
@@ -496,8 +498,12 @@ class ImportPartsView(View):
                     try:
                         item = Item.objects.get(Name=item_name)
                     except Item.DoesNotExist:
-                        import_report.append(f'Error: {item_name} (Item not found)')
-                        continue
+                        try:
+                            alias = ItemAlias.objects.get(AliasName=item_name)
+                            item = alias.Item
+                        except ItemAlias.DoesNotExist:
+                            import_report.append(f'Error: {item_name} (Item not found)')
+                            continue
 
                     # Check if the Color with the given WebrickColorID exists
                     try:
@@ -517,7 +523,8 @@ class ImportPartsView(View):
                     part, created = Part.objects.get_or_create(
                         ItemID=item,
                         ColorID=color,
-                        defaults={'ImageReference': image_reference}
+                        defaults={'ImageReference': image_reference},
+                        user=user
                     )
                     # Check if a new Part was created
                     if created:
@@ -545,8 +552,91 @@ class ImportPartsView(View):
                 return render(request, 'bricks/import_report.html', {'import_report': [f'Error: {str(e)}']})
 
         return render(request, self.template_name, {'form': form})
+
+class ImportSetPartsView(LoginRequiredMixin, View):
+    template_name = 'bricks/import_set_parts.html'
     
-class ExcelUploadView(View):
+    def get(self, request):
+        form = ExcelUploadForm()
+        return render(request, self.template_name, {'form': form})
+    
+    def post(self, request):
+        user = self.request.user
+        form = ExcelUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            excel_file = form.cleaned_data['excel_file']
+            try:
+                df = pd.read_excel(excel_file)
+                import_report = []
+
+                for index, row in df.iterrows():
+                    item_name = row['ItemName']
+                    color_id = row['WebrickColorID']
+                    quantity = row['Quantity']
+                    image_reference = row['ImageReferenceURL']
+                    setlist_name = row['SetListName']
+
+                    # Check if the Item with the same name exists
+                    try:
+                        item = Item.objects.get(Name=item_name)
+                    except Item.DoesNotExist:
+                        try:
+                            alias = ItemAlias.objects.get(AliasName=item_name)
+                            item = alias.Item
+                        except ItemAlias.DoesNotExist:
+                            import_report.append(f'Error: {item_name} (Item not found)')
+                            continue
+
+                    # Check if the Color with the given WebrickColorID exists
+                    try:
+                        color = Color.objects.get(WebrickColorID=color_id)
+                    except Color.DoesNotExist:
+                        import_report.append(f'Error: {item_name} (Color not found)')
+                        continue
+
+                    # Check if the SetList with the given SetListName exists
+                    try:
+                        setlist = SetList.objects.get(Name=setlist_name)
+                    except SetList.DoesNotExist:
+                        import_report.append(f'Error: {item_name} (Set not found)')
+                        continue
+
+                    # Create or get the SetPart entry
+                    setpart, created = SetPart.objects.get_or_create(
+                        ItemID=item,
+                        ColorID=color,
+                        defaults={'ImageReference': image_reference},
+                        user=user
+                    )
+
+                    # Check if a new SetPart was created
+                    if created:
+                        import_report.append(f'New Set Part created: {item_name}')
+
+                    # Try to get an existing Set Part entry
+                    setlistpart = SetListPart.objects.filter(SetListID=setlist, SetPartID=setpart).first()
+
+                    if setlistpart:
+                        # Update the quantity if the Set Part entry already exists
+                        setlistpart.Quantity += quantity
+                        setlistpart.save()
+                        import_report.append(f'Success: {item_name} added to {setlist_name}, quantity updated to {setlistpart.Quantity}')
+                    else:
+                        # Create the SetPart entry if it doesn't already exist
+                        SetListPart.objects.create(
+                            SetListID=setlist,
+                            SetPartID=setpart,
+                            Quantity=quantity
+                        )
+                        import_report.append(f'Success: {item_name} added to {setlist_name}')
+
+                return render(request, 'bricks/import_report.html', {'import_report': import_report})
+            except Exception as e:
+                return render(request, 'bricks/import_report.html', {'import_report': [f'Error: {str(e)}']})
+
+        return render(request, self.template_name, {'form': form})
+
+class ExcelUploadView(LoginRequiredMixin, View):
     template_name = 'admin/upload_excel.html'
 
     def get(self, request):

@@ -49,8 +49,8 @@
                     <thead>
                     <tr>
                         <th scope="col">ID</th>
-                        <th scope="col">ItemID</th>
                         <th scope="col">Image</th>
+                        <th scope="col">ItemID</th>
                         <th scope="col">Color</th>
                         <th scope="col">Qty</th>
                         <th scope="col">Type</th>
@@ -76,27 +76,27 @@
                         </tr>
                     {% endif %}
 
-                    {% for part_data in aggregated_data %}
+                    {% for part_data in page_aggregated_data %}
                         <tr>
                             <th scope="row">{{ part_data.aggregated_part.PartID }}</th>
-                            <td>{{ part_data.aggregated_part.ItemID }}</td>
                             <td>
-                                {% if item.InternalURL %}
-                                    <img src="{{ part_data.aggregated_part.InternalURL }}" alt="{{ part_data.aggregated_part.ItemID.Description }}"
+                                {% if part_data.aggregated_part.InternalURL.url %}
+                                    <img src="{{ part_data.aggregated_part.InternalURL.url }}" alt="{{ part_data.aggregated_part.ItemID.Description }}"
                                     class="img-fluid" style="max-width: 50px;">
                                 {% else %}
                                     - No Image -
                                 {% endif %}   
                             </td>
+                            <td>{{ part_data.aggregated_part.ItemID }}</td>
                             <td>
                                 <div class="color-swatch"
                                     style="background-color: {{ part_data.aggregated_part.ColorID.RGB }}; padding: 5px; text-align: center;"
                                     data-toggle="tooltip"
                                     data-placement="top"
-                                    title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part_data.aggregated_part.ColorID.ColorID }}.png' alt='Color Image' width: 110px; height: 90px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
+                                    title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part_data.aggregated_part.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
                                     data-html="true">
                                     <div class="color-num"
-                                        style="background: {{ part_data.aggregated_part.ColorID.RGB }}; color: {{ part_data.aggregated_part.ColorID.RGB|is_dark_color }}">{{ part_data.aggregated_part.ColorID.Name }}</div>
+                                        style="background: {{ part_data.aggregated_part.ColorID.RGB }}; color: {{ part_data.aggregated_part.ColorID.RGB|is_dark_color }}; font-size: 9px;">{{ part_data.aggregated_part.ColorID.Name }}</div>
                                 </div>
                             </td>
                             <td>{{ part_data.aggregated_quantity }}</td>
@@ -142,8 +142,8 @@
                     <thead>
                     <tr>
                         <th scope="col">ID</th>
-                        <th scope="col">ItemID</th>
                         <th scope="col">Image</th>
+                        <th scope="col">ItemID</th>
                         <th scope="col">Color</th>
                         <th scope="col">Qty</th>
                         <th scope="col">Type</th>
@@ -171,27 +171,27 @@
                         </tr>
                     {% endif %}
 
-                    {% for part in parts %}
+                    {% for part in page_parts %}
                         {% for list_part in part.listpart_set.all %}
                             <tr>
                                 <th scope="row">{{ part.PartID }}</th>
-                                <td>{{ part.ItemID }}</td>
                                 <td>
-                                    {% if item.InternalURL %}
+                                    {% if part.ImageReference %}
                                         <img src="{{ part.ImageReference }}" alt="{{ part.ItemID.Description }}" class="img-fluid" style="max-width: 50px;">
                                     {% else %}
                                         - No Image -
                                     {% endif %}       
                                 </td>
+                                <td>{{ part.ItemID }}</td>
                                 <td>
                                     <div class="color-swatch"
                                         style="background-color: {{ part.ColorID.RGB }}; padding: 5px; text-align: center;"
                                         data-toggle="tooltip"
                                         data-placement="top"
-                                        title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part.ColorID.ColorID }}.png' alt='Color Image' width: 110px; height: 90px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
+                                        title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
                                         data-html="true">
                                         <div class="color-num"
-                                            style="background: {{ part.ColorID.RGB }}; color: {{ part.ColorID.RGB|is_dark_color }}">{{ part.ColorID.Name }}</div>
+                                            style="background: {{ part.ColorID.RGB }}; color: {{ part.ColorID.RGB|is_dark_color }}; font-size: 9px;">{{ part.ColorID.Name }}</div>
                                     </div>
                                 </td>
                                 <td>{{ list_part.Quantity }}</td>

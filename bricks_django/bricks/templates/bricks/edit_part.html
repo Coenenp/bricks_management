@@ -28,7 +28,18 @@
             <!-- Left column for item image -->
             <div class="col-md-4">
                 <div class="d-flex justify-content-center align-items-center" style="height: 50vh; border: 1px solid; border-radius: 10px; padding: 10px; box-shadow: 0px 0px 4px;">
-                    <img src="{{ part_image }}" alt="Part Image" class="img-fluid" style="max-width: 300px;">
+                    {% if part_image %}
+                        <img
+                            src="{{ part_image }}"
+                            alt="{{ part_name }}"
+                            class="img-fluid"
+                            style="max-width: 500px; max-height: 500px;"
+                            data-magnify-src="{{ part_image }}"
+                            />
+                    {% else %}
+                        <!-- Handle the case when image is empty -->
+                        <p>No image available</p>
+                    {% endif %}
                 </div>
             </div>
             <div class="col-md-1">
@@ -153,8 +164,11 @@
         // Show the success modal
         $('#successModal').modal('show');
     }
-</script>
-<script>
+    // Initialize image magnification
+    $(document).ready(function () {
+        $('img[data-magnify-src]').magnify();
+    });
+    
     function decrementValue(listID) {
         var quantityField = document.getElementById("quantity_" + listID);
         if (quantityField.value > 0) {

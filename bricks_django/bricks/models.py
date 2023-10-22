@@ -6,7 +6,12 @@ from django.contrib.auth.models import User
 class Color(models.Model):
     ColorID = models.AutoField(primary_key=True)
     BricklinkColorID = models.IntegerField(unique=True)
+    LEGOColorID = models.IntegerField(null=True, blank=True)
     WebrickColorID = models.IntegerField(null=True, blank=True)
+    RebrickableColorID = models.IntegerField(null=True, blank=True)
+    LDrawColorID = models.IntegerField(null=True, blank=True)
+    BrickOwlColorID = models.IntegerField(null=True, blank=True)
+    GobricksColorID = models.IntegerField(null=True, blank=True)
     Name = models.CharField(max_length=255, unique=True)
     ColorType = models.CharField(max_length=255)
     ColorTimeline = models.CharField(max_length=255, null=True, blank=True)
@@ -71,7 +76,8 @@ class Part(models.Model):
     PartID = models.AutoField(primary_key=True)
     ItemID = models.ForeignKey(Item, on_delete=models.CASCADE)
     ColorID = models.ForeignKey(Color, on_delete=models.CASCADE)
-    ImageReference = models.CharField(max_length=255, null=True, blank=True) 
+    ImageReference = models.CharField(max_length=255, null=True, blank=True)
+    InternalURL = models.ImageField(upload_to='downloaded_part_images/', null=True, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     
@@ -127,6 +133,7 @@ class SetList(models.Model):
     SetListID = models.AutoField(primary_key=True)
     Name = models.CharField(max_length=255, unique=True)
     Description = models.CharField(max_length=255)
+    ImageReference = models.CharField(max_length=255, null=True, blank=True) 
     Year = models.IntegerField(choices=YEAR_CHOICES, default=timezone.now().year)
     BuildInstructions = models.CharField(max_length=255, null=True, blank=True) 
     
@@ -135,8 +142,8 @@ class SetList(models.Model):
 
 class SetListPart(models.Model):
     SetListPartID = models.AutoField(primary_key=True)
-    SetListID = models.ForeignKey(List, on_delete=models.CASCADE)
-    SetPartID = models.ForeignKey(Part, on_delete=models.CASCADE)
+    SetListID = models.ForeignKey(SetList, on_delete=models.CASCADE)
+    SetPartID = models.ForeignKey(SetPart, on_delete=models.CASCADE)
     Quantity = models.IntegerField()
     date_updated = models.DateTimeField(default=timezone.now)
     
