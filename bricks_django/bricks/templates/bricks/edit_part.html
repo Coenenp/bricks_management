@@ -33,7 +33,7 @@
                             src="{{ part_image }}"
                             alt="{{ part_name }}"
                             class="img-fluid"
-                            style="max-width: 500px; max-height: 500px;"
+                            style="max-width: 100%; max-height: 100%;"
                             data-magnify-src="{{ part_image }}"
                             />
                     {% else %}
@@ -70,31 +70,31 @@
                     <tbody>
                         <tr>
                             <td>LEGO</td>
-                            <td>{{ object.Color.BricklinkColorID }} - {{ object.Color.BricklinkColorName }}</td>
+                            <td>{{ object.ColorID.LEGOColorID }} - {{ object.ColorID.Name }}</td>
                         </tr>
                         <tr>
                             <td>Bricklink</td>
-                            <td>{{ object.Color.WebrickColorID }} - {{ object.Color.WebrickColorName }}</td>
+                            <td>{{ object.ColorID.BricklinkColorID }} - {{ object.ColorID.Name }}</td>
                         </tr>
                         <tr>
                             <td>Webrick</td>
-                            <td>{{ object.Color.WebrickColorID }} - {{ object.Color.WebrickColorName }}</td>
+                            <td>{{ object.ColorID.WebrickColorID }} - {{ object.ColorID.Name }}</td>
                         </tr>
                         <tr>
                             <td>Rebrickable</td>
-                            <td>{{ object.Color.WebrickColorID }} - {{ object.Color.WebrickColorName }}</td>
+                            <td>{{ object.ColorID.RebrickableColorID }} - {{ object.ColorID.Name }}</td>
                         </tr>
                         <tr>
                             <td>LDraw</td>
-                            <td>{{ object.Color.WebrickColorID }} - {{ object.Color.WebrickColorName }}</td>
+                            <td>{{ object.ColorID.LDrawColorID }} - {{ object.ColorID.Name }}</td>
                         </tr>
                         <tr>
                             <td>BrickOwl</td>
-                            <td>{{ object.Color.WebrickColorID }} - {{ object.Color.WebrickColorName }}</td>
+                            <td>{{ object.ColorID.BrickOwlColorID }} - {{ object.ColorID.Name }}</td>
                         </tr>
                         <tr>
                             <td>Gobricks</td>
-                            <td>{{ object.Color.WebrickColorID }} - {{ object.Color.WebrickColorName }}</td>
+                            <td>{{ object.ColorID.GobricksColorID }} - {{ object.ColorID.Name }}</td>
                         </tr>
                     </tbody>
                 </table>

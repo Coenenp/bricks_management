@@ -133,9 +133,12 @@ class SetList(models.Model):
     SetListID = models.AutoField(primary_key=True)
     Name = models.CharField(max_length=255, unique=True)
     Description = models.CharField(max_length=255)
+    Information = models.CharField(max_length=1024, null=True, blank=True)
     ImageReference = models.CharField(max_length=255, null=True, blank=True) 
     Year = models.IntegerField(choices=YEAR_CHOICES, default=timezone.now().year)
     BuildInstructions = models.CharField(max_length=255, null=True, blank=True) 
+    LEGOReference = models.CharField(max_length=255, null=True, blank=True) 
+    ToysPeriodReference = models.CharField(max_length=255, null=True, blank=True) 
     
     def __str__(self):
         return self.Name

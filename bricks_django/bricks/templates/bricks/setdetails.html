@@ -1,0 +1,88 @@
+{% extends 'bricks/base.html' %}
+{% block content %}
+<div class="container mt-3">
+    <div class="row">
+        <!-- Navigation links -->
+        <div class="col-md-12 mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{% url 'setdetails' previous_setlist_id %}" class="btn btn-secondary">&larr; Previous Set</a>
+                <a href="{% url 'setlistview' %}" class="btn btn-primary">Return to Set list</a>
+                <a href="{% url 'setdetails' next_setlist_id %}" class="btn btn-secondary">Next Set &rarr;</a>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <!-- Left column for set image -->
+        <div class="col-md-4">
+            <div class="d-flex justify-content-center align-items-center" style="height: 50vh; border: 1px solid; border-radius: 10px; padding: 10px; box-shadow: 0px 0px 4px;">
+                {% if setlist.ImageReference %}
+                    <img
+                        src="{{ setlist.ImageReference }}"
+                        alt="{{ setlist.Name }}"
+                        class="img-fluid"
+                        style="max-width: 90%; max-height: 90%; margin: 0 auto;"
+                        data-magnify-src="{{ setlist.ImageReference }}"
+                        />
+                {% else %}
+                    <!-- Handle the case when ImageReference is empty -->
+                    <p>No image available</p>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Right column for set details, set year, items, pieces, build instructions and ... -->
+        <div class="col-md-8">
+            <!-- Set name and description -->
+            <h2>{{ setlist.Name }}</h2>
+            <p>{{ setlist.Description }}</p>
+            <div class="part-details">
+                <strong>Set ID:</strong> {{ setlist.SetListID }}<br>
+                <strong># Items:</strong> {{ setlist.part }}<br>
+                <strong># Pieces:</strong> {{ setlist.total_quantity }}<br>
+                <strong>Year:</strong> {{ setlist.Year }}<br>
+                <strong>Information:</strong> {{ setlist.Information|linebreaksbr|safe }}<br>
+                <strong>Build Instructions:</strong> <a href={{ item.setlist.BuildInstructions }}>Download</a><br>
+                <strong>Link LEGO:</strong> <a href={{ setlist.LEGOReference }}>LEGO</a><br>
+                <strong>Link ToysPeriod:</strong> <a href={{ setlist.ToysPeriodReference }}>ToysPeriod</a>
+            </div>
+        </div>
+        <div>
+            <br>  
+        </div>
+        <hr>
+
+        <div class="row mt-3">
+            <div class="col-md-12 col-12 mx-auto">
+                <div class="d-flex justify-content-end">
+                    <a href="#" class="btn btn-primary">+</a>
+                </div>
+                <h2>Parts in Set</h2>
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th class="col">Part</th>
+                            <th class="col">Name</th>
+                            <th class="col">Color</th>
+                            <th class="col">Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ setlist.Name }}</td>
+                            <td>{{ setlist.Description }}</td>
+                            <td>{{ setlist.Year }}</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Initialize image magnification
+    $(document).ready(function () {
+        $('img[data-magnify-src]').magnify();
+    });
+
+</script>
+{% endblock content %}

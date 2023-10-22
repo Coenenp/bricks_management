@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import Index, SignUpView, Dashboard, ListView, ItemView, ToggleView, ToggleAggregatedView, AddtoList, AddPart, AddListPart, EditPart, EditPartQuantity, DeletePart, DeletePartFromList, GetValidSubtypesView, ImportItemsView, ImportPartsView, ImportSetPartsView, ItemDetailView
+from .views import Index, SignUpView, Dashboard, SetListView, SetListPartView, ListView, ItemView, ToggleView, ToggleAggregatedView, AddtoList, AddPart, AddListPart, EditPart, EditPartQuantity, DeletePart, DeletePartFromList, GetValidSubtypesView, ImportItemsView, ImportPartsView, ImportSetPartsView, ItemDetailView
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
@@ -7,6 +7,8 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('', Index.as_view(), name='index'),
     path('dashboard/', Dashboard.as_view(), name='dashboard'),
+    path('setlistview/', SetListView.as_view(), name='setlistview'),
+    path('setdetails/<int:setlist_id>/', SetListPartView.as_view(), name='setdetails'),
     path('listview/', ListView.as_view(), name='listview'),
     path('itemview/', ItemView.as_view(), name='itemview'),
     path('toggleview/', ToggleView.as_view(), name='toggleview'),

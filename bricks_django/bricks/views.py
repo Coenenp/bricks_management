@@ -100,6 +100,78 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
 
         return render(request, 'bricks/dashboard.html', context)
 
+class ListView(LoginRequiredMixin, View):
+    def get(self, request):
+        lists = List.objects.order_by('ListID')
+        
+        list_data = []
+        
+        for list_item in lists:
+            # Calculate the number of unique PartIDs for the current ListID
+            unique_part_count = ListPart.objects.filter(ListID=list_item).values('PartID').distinct().count()
+
+            # Calculate the sum of quantities for the current ListID
+            total_quantity = ListPart.objects.filter(ListID=list_item).aggregate(total_quantity=Sum('Quantity'))['total_quantity']
+
+            list_data.append({
+                'list': list_item,
+                'unique_part_count': unique_part_count,
+                'total_quantity': total_quantity,
+            })
+
+        return render(request, 'bricks/listview.html', {
+            'list_data': list_data,
+        })
+
+class SetListPartView(LoginRequiredMixin, View):
+    def get(self, request, setlist_id):
+        setlist = get_object_or_404(SetList, pk=setlist_id)
+        
+        # Get the SetListPart instances for the given SetList
+        setlist_parts = SetListPart.objects.filter(SetListID=setlist)
+
+        # Create a list to store the SetPart and total quantity data
+        setpart_data = []
+
+        previous_setlist = SetList.objects.filter(pk__lt=setlist_id).order_by('-pk').first()
+        next_setlist = SetList.objects.filter(pk__gt=setlist_id).order_by('pk').first()
+
+        # If there's no next item, wrap around to the first item
+        if not next_setlist:
+            next_setlist = SetList.objects.order_by('pk').first()
+
+        # If there's no previous item, wrap around to the last item
+        if not previous_setlist:
+            previous_setlist = SetList.objects.order_by('-pk').first()
+        
+        for setlist_part in setlist_parts:
+            try:
+                # Try to find the related Part for the SetPart
+                part = Part.objects.get(ItemID=setlist_part.SetPartID.ItemID, ColorID=setlist_part.SetPartID.ColorID)
+                total_quantity = ListPart.objects.filter(PartID=part).aggregate(total_quantity=models.Sum('Quantity'))['total_quantity'] or 0
+            except Part.DoesNotExist:
+                # Handle the case where there is no matching Part
+                part = None
+                total_quantity = 0
+
+            # Create a dictionary to store the data
+            setpart_info = {
+                'setpart': setlist_part.SetPartID,
+                'part': part,
+                'total_quantity': total_quantity,
+            }
+
+            # Add the dictionary to the setpart_data list
+            setpart_data.append(setpart_info)
+
+        context = {
+            'setlist': setlist,
+            'setpart_data': setpart_data,
+            'previous_setlist_id': previous_setlist.pk if previous_setlist else None,
+            'next_setlist_id': next_setlist.pk if next_setlist else None,
+        }
+        return render(request, 'bricks/setdetails.html', context)
+
 class SignUpView(View):
 	def get(self, request):
 		form = UserRegisterForm()
@@ -295,11 +367,29 @@ class DeletePartFromList(LoginRequiredMixin, View):
 
         return redirect('dashboard')
 
-class ListView(LoginRequiredMixin, View):
-	def get(self, request):
-		lists = List.objects.order_by('ListID')
+class SetListView(LoginRequiredMixin, View):
+    def get(self, request):
+        setlists = SetList.objects.order_by('SetListID')
+        
+        setlist_data = []
+        
+        for setlist_item in setlists:
+            # Calculate the number of unique PartIDs for the current ListID
+            unique_part_count = SetListPart.objects.filter(SetListID=setlist_item).values('SetPartID').distinct().count()
 
-		return render(request, 'bricks/listview.html', {'lists': lists})
+            # Calculate the sum of quantities for the current ListID
+            total_quantity = SetListPart.objects.filter(SetListID=setlist_item).aggregate(total_quantity=Sum('Quantity'))['total_quantity']
+
+            setlist_data.append({
+                'setlist': setlist_item,
+                'unique_part_count': unique_part_count,
+                'total_quantity': total_quantity,
+            })
+
+        return render(request, 'bricks/setlistview.html', {
+            'setlist_data': setlist_data,
+        })
+
 
 class ItemView(LoginRequiredMixin, View):
     template_name = 'bricks/itemview.html'
