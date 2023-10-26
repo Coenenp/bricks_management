@@ -6,12 +6,12 @@
 
 <style>
     /* CSS for color swatch */
-    .color-swatch-container {
+    #color-matrix-table .color-swatch-container {
         display: flex;
         flex-wrap: wrap;
         justify-content: start;
     }
-    .color-swatch {
+    #color-matrix-table .color-swatch {
         width: 45px;
         height: 25px;
         background-color: #FFFFFF; /* Default background color if needed */
@@ -25,7 +25,7 @@
         margin: 3px;
         padding: 3px;
     }
-    .color-swatch.selected {
+    #color-matrix-table .color-swatch.selected {
         box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.5); 
         border: 3px solid #000000; /* You can change the border color as needed */
     }
@@ -56,7 +56,7 @@
         border-top-color: #FFFFFF;
     }
 </style>
-<div class="container mt-3">
+<div class="container mt-3" data-item-id="{{ item.ItemID }}" data-update-available-parts-url="{% url 'update_available_parts' 0 %}">
     <div class="row">
         <!-- Navigation links -->
         <div class="col-md-12 mb-3">
@@ -92,7 +92,7 @@
             <p>{{ item.Description }}</p>
 
             <!-- Color matrix -->
-            <table class="table">
+            <table class="table" id="color-matrix-table">
                 <thead>
                     <tr>
                         <th style="width: 30%;">Color Type</th> <!-- Adjust the width as needed -->
@@ -108,10 +108,10 @@
                                 {% for color in color_list %}
                                 <div class="color-swatch {% if color.ColorID == initial_color_id %}selected{% endif %}" 
                                     style="background-color: {{ color.RGB }};" 
-                                    data-toggle="tooltip" 
-                                    data-placement="top" 
+                                    data-bs-toggle="tooltip" 
+                                    data-bs-placement="top" 
                                     title="<div style='text-align: center;''><img src='/media/color_images/color.{{ color.ColorID }}.png' alt='Color Image' width: 110px; height: 90px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
-                                    data-html="true"
+                                    data-bs-html="true"
                                     data-color-id="{{ color.ColorID }}"
                                     onclick="selectColor(this)">
                                     <div class="color-num" style="background: {{ color.RGB }}; color: {{ color.RGB|is_dark_color }}">{{ color.WebrickColorID }}</div>
@@ -158,6 +158,67 @@
         </div>
     </div>
 </div>
+<div>
+    <br>  
+</div>
+<hr>
+<div>
+    <br>  
+</div>
+<hr>
+
+<div class="row mt-3">
+    <div class="col-md-12 col-12 mx-auto">
+        <h2>Available Colors</h2>
+            <table class="table table-hover table-striped" id="parts-table">
+                <thead>
+                    <tr>
+                        <th class="col">Part</th>
+                        <th class="col">Image</th>
+                        <th class="col">Color</th>
+                        <th class="col">Lists</th>
+                        <th class="col">Quantity</th>
+                    </tr>
+                </thead>
+                <tbody id="parts-table-body">
+                    {% for part_info in parts_data %}
+                    <tr>
+                        <td>{{ part_info.part.PartID }}</td>
+                        <td>
+                            {% if part_info.part.InternalURL %}
+                                <img src="{{ part_info.part.InternalURL.url }}" alt="{{ part_info.part.ColorID.Name }}"
+                                class="img-fluid" style="max-width: 50px;">
+                            {% else %}
+                                - No Image -
+                            {% endif %}   
+                        </td>
+                        <td>
+                            <div class="color-swatch"
+                                style="background-color: {{ part_info.part.ColorID.RGB }}; padding: 5px; text-align: center;"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part_info.part.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ part_info.part.ColorID.HEX }}<br>{{ part_info.part.ColorID.Name }}</div>"
+                                data-html="true">
+                                <div class="color-num"
+                                    style="background: {{ part_info.part.ColorID.RGB }}; color: {{part_info.part.ColorID.RGB|is_dark_color }}; font-size: 9px;">{{ part_info.part.ColorID.Name }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            {% for list in part_info.appearing_lists %}
+                                {% if list.CategoryID.Name == 'MOC Part' %}
+                                    <span class="text-danger">{{ list.Name }}</span><br>
+                                {% else %}
+                                    <span class="text-success">{{ list.Name }}</span><br>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>{{ part_info.total_quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+    </div>
+</div>
 
 <!-- Modal -->
 <div class="modal fade" id="successModal" tabindex="-1" role="dialog" aria-labelledby="successModalLabel" aria-hidden="true">
@@ -200,7 +261,7 @@
 
     // Initialize tooltips
     $(document).ready(function () {
-        $('[data-toggle="tooltip"]').tooltip({
+        $('[data-bs-toggle="tooltip"]').tooltip({
             trigger: 'hover',
             html: true,
             placement: 'top',
@@ -262,28 +323,135 @@
     $(document).ready(function () {
         $('#addToListForm').on('submit', function (e) {
             e.preventDefault(); // Prevent the form from submitting normally
-
+    
+            var form = $(this);  // Store the form for later use
+    
             $.ajax({
                 type: 'POST',
                 url: '{% url 'add_to_list' %}',
-                data: $(this).serialize(),
+                data: form.serialize(),
                 success: function (data) {
                     if (data.success) {
+                        // Clear the input fields and reset the Add to List button
+                        form.find('input[type=number]').val(0);
+                        $('#listSelector').val('');
+                        $('#addToList').prop('disabled', true);
+    
                         // Display the success modal
                         $('#successModal .modal-body').text(data.message);
                         $('#successModal').modal('show');
+
+                        // Update the "Available Colors" table
+                        $('#successModal').on('shown.bs.modal', function () {
+                            updateAvailablePartsTable();
+                        });
                     } else {
                         alert('Error: ' + data.message);
                     }
                 },
                 error: function (xhr, status, error) {
-                    console.log(xhr.responseText); // Log the response text for debugging
-                    console.log(status); // Log the status for debugging
-                    console.log(error); // Log any error messages for debugging
+                    console.log(xhr.responseText);
+                    console.log(status);
+                    console.log(error);
                 }
             });
         });
     });
+
+    // Function to update the "available parts" table
+    function updateAvailablePartsTable() {
+        var item_id = $('.container').data('item-id');
+        var updatePartsUrl = $('.container').data('update-available-parts-url');  // Retrieve the URL
+        var url = updatePartsUrl.replace('/0/', '/' + item_id + '/');
+        var csrftoken = getCookie('csrftoken');
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: $(this).serialize(),
+            headers: { "X-CSRFToken": csrftoken },
+            success: function (data) {
+                if (data.success) {
+                    // Select the table body
+                    var tableBody = $('#parts-table-body');
+                    
+                    // Create a variable to store the new HTML content
+                    var newTableContent = '';
+                    
+                    // Iterate through the parts_data and create new rows
+                    data.parts_data.forEach(function(partInfo) {
+                        newTableContent += '<tr>';
+                        newTableContent += '<td>' + partInfo.part.id + '</td>';
+                        newTableContent += '<td>';
+                        if (partInfo.part.image) {
+                            newTableContent += '<img src="' + partInfo.part.image + '" alt="' + partInfo.part.colorname + '" class="img-fluid" style="max-width: 50px;">';
+                        } else {
+                            newTableContent += '- No Image -';
+                        }
+                        newTableContent += '</td>';
+                        newTableContent += '<td>';
+                        newTableContent += '<div class="color-swatch" style="background-color:' + partInfo.part.RGB + '; padding: 5px; text-align: center;" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" title="<div style=\'text-align: center;\'><img src=\'/media/color_images/color.' + partInfo.part.colorid + '.png\' alt=\'Color Image\' width: 55px; height: 45px;><br>' + partInfo.part.HEX + '<br>' + partInfo.part.colorname + '</div>">';
+                            newTableContent += '<div class="color-num" style="background: ' + partInfo.part.RGB + '; color: ' + (isDarkColor(partInfo.part.HEX) ? 'white' : 'black') + '; font-size: 9px;">' + partInfo.part.colorname + '</div>';
+                        newTableContent += '</div>';
+                        newTableContent += '</td>';
+                        newTableContent += '<td>';
+                        partInfo.appearing_lists.forEach(function(list) {
+                            if (list.category && list.name) {
+                                newTableContent += list.category === 'MOC Part' ? '<span class="text-danger">' + list.name + '</span><br>' : '<span class="text-success">' + list.name + '</span><br>';
+                            } else {
+                                newTableContent += 'Category or Name is undefined<br>';
+                            }
+                        });
+                        newTableContent += '</td>';
+                        newTableContent += '<td>' + partInfo.total_quantity + '</td>';
+                        newTableContent += '</tr>';
+                    });
+                    
+                    // Set the table body's HTML to the new content
+                    tableBody.html(newTableContent);
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.log('Error:', xhr.responseText);
+                console.log('Status:', status);
+                console.log('Error message:', error);
+            }
+        });
+    }
+
+    // Function to get the CSRF token from cookies
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    // Function to determine if a color is dark or not
+    function isDarkColor(hexColor) {
+        // Convert hex color to RGB
+        var r = parseInt(hexColor.slice(1, 3), 16);
+        var g = parseInt(hexColor.slice(3, 5), 16);
+        var b = parseInt(hexColor.slice(5, 7), 16);
+    
+        // Calculate the perceived luminance
+        var luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+        // You can adjust this threshold to your preference
+        var threshold = 0.5;
+    
+        return luminance < threshold;
+    }
 </script>
 
 {% endblock content %}

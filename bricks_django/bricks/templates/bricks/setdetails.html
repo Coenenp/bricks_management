@@ -1,4 +1,6 @@
 {% extends 'bricks/base.html' %}
+{% load static %}
+{% load custom_filters %}
 {% block content %}
 <div class="container mt-3">
     <div class="row">
@@ -36,15 +38,19 @@
             <p>{{ setlist.Description }}</p>
             <div class="part-details">
                 <strong>Set ID:</strong> {{ setlist.SetListID }}<br>
-                <strong># Items:</strong> {{ setlist.part }}<br>
-                <strong># Pieces:</strong> {{ setlist.total_quantity }}<br>
+                <strong># Items:</strong> {{ set_items }}<br>
+                <strong># Pieces:</strong> {{ set_pieces }}<br>
                 <strong>Year:</strong> {{ setlist.Year }}<br>
-                <strong>Information:</strong> {{ setlist.Information|linebreaksbr|safe }}<br>
+                <strong>Information:</strong><br><i> {{ setlist.Information|linebreaksbr|safe }} </i><br><br>
                 <strong>Build Instructions:</strong> <a href={{ item.setlist.BuildInstructions }}>Download</a><br>
                 <strong>Link LEGO:</strong> <a href={{ setlist.LEGOReference }}>LEGO</a><br>
                 <strong>Link ToysPeriod:</strong> <a href={{ setlist.ToysPeriodReference }}>ToysPeriod</a>
             </div>
         </div>
+        <div>
+            <br>  
+        </div>
+        <hr>
         <div>
             <br>  
         </div>
@@ -55,27 +61,64 @@
                 <div class="d-flex justify-content-end">
                     <a href="#" class="btn btn-primary">+</a>
                 </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="hide-ok-items">
+                    <label class="form-check-label" for="hide-ok-items">Hide Available Items</label>
+                </div>
                 <h2>Parts in Set</h2>
-                <table class="table table-hover table-striped">
+                <table class="table table-hover table-striped" id="parts-table">
                     <thead>
                         <tr>
-                            <th class="col">Part</th>
-                            <th class="col">Name</th>
-                            <th class="col">Color</th>
+                            <th class="col">SetPart</th>
                             <th class="col">Quantity</th>
+                            <th class="col">Image</th>
+                            <th class="col">Color</th>
+                            <th class="col">Available</th>
+                            <th class="col">Other Colors</th>
+                            <th class="col">Missing Parts</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for setpart in setpart_data %}
                         <tr>
-                            <td>{{ setlist.Name }}</td>
-                            <td>{{ setlist.Description }}</td>
-                            <td>{{ setlist.Year }}</td>
-                            <td>-</td>
+                            <td>{{ setpart.setpart }}</td>
+                            <td>{{ setpart.quantity }}</td>
+                            <td>
+                                {% if setpart.setpart.ImageReference %}
+                                    <img src="{{ setpart.setpart.ImageReference.url }}" alt="{{ setpart.setpart.Name }}"
+                                    class="img-fluid" style="max-width: 50px;">
+                                {% else %}
+                                    - No Image -
+                                {% endif %}   
+                            </td>
+                            <td>
+                                <div class="color-swatch"
+                                    style="background-color: {{ setpart.setpart.ColorID.RGB }}; padding: 5px; text-align: center;"
+                                    data-toggle="tooltip"
+                                    data-placement="top"
+                                    title="<div style='text-align: center;''><img src='/media/color_images/color.{{ setpart.setpart.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
+                                    data-html="true">
+                                    <div class="color-num"
+                                        style="background: {{ setpart.setpart.ColorID.RGB }}; color: {{ setpart.setpart.ColorID.RGB|is_dark_color }}; font-size: 9px;">{{ setpart.setpart.ColorID.Name }}</div>
+                                </div>
+                            </td>
+                            <td>{{ setpart.total_quantity }}</td>
+                            <td>{{ setpart.other_colors }}</td>
+                            <td>
+                                {% if setpart.total_quantity >= setpart.quantity %}
+                                    <span style="color: green;">OK!</span>
+                                {% else %}
+                                    <span style="color: red;">
+                                        {{ setpart.quantity|add:"-setpart.total_quantity" }}
+                                    </span>
+                                {% endif %}
+                            </td>
                         </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div>        
     </div>
 </div>
 <script>
@@ -84,5 +127,24 @@
         $('img[data-magnify-src]').magnify();
     });
 
+    document.addEventListener("DOMContentLoaded", function() {
+        const hideOkCheckbox = document.getElementById("hide-ok-items");
+        const partsTable = document.getElementById("parts-table");
+
+        hideOkCheckbox.addEventListener("change", function() {
+            const rows = partsTable.getElementsByTagName("tr");
+            const hideOkItems = hideOkCheckbox.checked;
+
+            for (let i = 1; i < rows.length; i++) { // Start from 1 to skip the table header row
+                const missingPartsCell = rows[i].cells[5]; // Assuming the "Missing Parts" cell is the 6th cell
+
+                if (hideOkItems && missingPartsCell.textContent.trim() === "OK!") {
+                    rows[i].style.display = "none";
+                } else {
+                    rows[i].style.display = "";
+                }
+            }
+        });
+    });
 </script>
 {% endblock content %}

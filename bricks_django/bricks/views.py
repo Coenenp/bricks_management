@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.shortcuts import redirect
-from django.db.models import Sum, F, Q
+from django.db.models import Sum, F, ExpressionWrapper, IntegerField
 from .forms import UserRegisterForm, PartForm, PartListForm, ExcelUploadForm, QuantityForm
 from .models import Part, List, Item, Type, Color, ListPart, ItemAlias, SetList, SetPart, SetListPart
 from collections import defaultdict
@@ -126,7 +126,7 @@ class ListView(LoginRequiredMixin, View):
 class SetListPartView(LoginRequiredMixin, View):
     def get(self, request, setlist_id):
         setlist = get_object_or_404(SetList, pk=setlist_id)
-        
+
         # Get the SetListPart instances for the given SetList
         setlist_parts = SetListPart.objects.filter(SetListID=setlist)
 
@@ -136,6 +136,11 @@ class SetListPartView(LoginRequiredMixin, View):
         previous_setlist = SetList.objects.filter(pk__lt=setlist_id).order_by('-pk').first()
         next_setlist = SetList.objects.filter(pk__gt=setlist_id).order_by('pk').first()
 
+        set_items = SetPart.objects.filter(setlistpart__SetListID=setlist).distinct().count()
+
+        # Calculate the total set quantity using aggregation
+        set_pieces = setlist_parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity'] or 0
+
         # If there's no next item, wrap around to the first item
         if not next_setlist:
             next_setlist = SetList.objects.order_by('pk').first()
@@ -143,21 +148,45 @@ class SetListPartView(LoginRequiredMixin, View):
         # If there's no previous item, wrap around to the last item
         if not previous_setlist:
             previous_setlist = SetList.objects.order_by('-pk').first()
-        
+
+        other_colors_dict = {}
+
         for setlist_part in setlist_parts:
+            set_part_id = setlist_part.SetPartID_id  # Access the ID of the SetPart directly
+            item_id = setlist_part.SetPartID.ItemID
+            color_id = setlist_part.SetPartID.ColorID
+
+            # Attempt to get the part, handling Part.DoesNotExist exception
             try:
-                # Try to find the related Part for the SetPart
-                part = Part.objects.get(ItemID=setlist_part.SetPartID.ItemID, ColorID=setlist_part.SetPartID.ColorID)
-                total_quantity = ListPart.objects.filter(PartID=part).aggregate(total_quantity=models.Sum('Quantity'))['total_quantity'] or 0
+                part = Part.objects.get(ItemID=item_id, ColorID=color_id)
             except Part.DoesNotExist:
-                # Handle the case where there is no matching Part
                 part = None
-                total_quantity = 0
+
+            # Calculate 'quantity' as the total quantity of the SetPart
+            quantity = setlist_parts.filter(SetPartID=set_part_id).aggregate(
+                quantity=Sum('Quantity')
+            )['quantity'] or 0
+
+            # Calculate 'total_quantity' using aggregation
+            total_quantity = ListPart.objects.filter(PartID=part).aggregate(
+                total_quantity=Sum('Quantity')
+            )['total_quantity'] or 0
+
+            # Calculate 'other_colors' as the sum of quantities for all Parts with the same ItemID but different ColorID
+            other_colors = 0  # Reset other_colors for each SetPart
+            other_colors += ListPart.objects.filter(
+                PartID__ItemID=item_id
+            ).exclude(PartID__ColorID=color_id).aggregate(
+                other_colors_quantity=Sum('Quantity')
+            )['other_colors_quantity'] or 0
+            other_colors_dict[item_id] = other_colors
 
             # Create a dictionary to store the data
             setpart_info = {
                 'setpart': setlist_part.SetPartID,
+                'quantity': quantity,
                 'part': part,
+                'other_colors': other_colors,
                 'total_quantity': total_quantity,
             }
 
@@ -166,6 +195,8 @@ class SetListPartView(LoginRequiredMixin, View):
 
         context = {
             'setlist': setlist,
+            'set_items': set_items,
+            'set_pieces': set_pieces,
             'setpart_data': setpart_data,
             'previous_setlist_id': previous_setlist.pk if previous_setlist else None,
             'next_setlist_id': next_setlist.pk if next_setlist else None,
@@ -321,7 +352,50 @@ class EditPartQuantity(View):
         
         # Return a JSON response indicating success
         return JsonResponse({'message': 'Quantities have been updated.'})
-    
+
+class UpdateAvailableParts(View):
+    def post(self, request, item_id):
+        parts_data = []
+        item = get_object_or_404(Item, pk=item_id)
+        parts = Part.objects.filter(ItemID=item)
+
+        for part in parts:
+            # Query ListPart instances related to the current part
+            list_parts = ListPart.objects.filter(PartID=part).select_related('ListID__CategoryID')
+
+            # Calculate the total quantity by summing the quantities from all ListPart instances
+            total_quantity = list_parts.aggregate(total_quantity=models.Sum('Quantity'))['total_quantity'] or 0
+
+            # Create a list of lists where the part appears
+            appearing_lists = [list_part.ListID for list_part in list_parts]
+
+            # Create a dictionary for the part's data
+            part_info = {
+                'part': {
+                    'id': part.PartID,
+                    'image': part.InternalURL.url if part.InternalURL else '',
+                    'colorid': part.ColorID.ColorID,
+                    'colorname': part.ColorID.Name,
+                    'RGB': part.ColorID.RGB,
+                    'HEX': part.ColorID.HEX,
+                },
+                'total_quantity': total_quantity,
+                'appearing_lists': [
+                    {
+                        'list_id': list.ListID,
+                        'category': list.CategoryID.Name,
+                        'name': list.Name,
+                    } for list in appearing_lists
+                ],
+            }
+
+            # Append the part's data to the list
+            parts_data.append(part_info)
+
+        parts_data.sort(key=lambda x: x['total_quantity'], reverse=True)
+
+        return JsonResponse({'success': True, 'parts_data': parts_data})
+
 class DeletePart(LoginRequiredMixin, DeleteView):
 	model = Part
 	template_name = 'bricks/delete_part.html'
@@ -420,6 +494,31 @@ class ItemDetailView(LoginRequiredMixin, View):
         colors = Color.objects.filter(WebrickColorID__isnull=False)
         colors_by_type = defaultdict(list)
         lists = List.objects.all()
+        parts = Part.objects.filter(ItemID=item)
+        
+        parts_data = []
+
+        for part in parts:
+            # Query ListPart instances related to the current part
+            list_parts = ListPart.objects.filter(PartID=part)
+            
+            # Calculate the total quantity by summing the quantities from all ListPart instances
+            total_quantity = list_parts.aggregate(total_quantity=models.Sum('Quantity'))['total_quantity'] or 0
+
+            # Create a list of lists where the part appears
+            appearing_lists = [list_part.ListID for list_part in list_parts]
+
+            # Create a dictionary for the part's data
+            part_info = {
+                'part': part,
+                'total_quantity': total_quantity,
+                'appearing_lists': appearing_lists,
+            }
+
+            # Append the part's data to the list
+            parts_data.append(part_info)
+
+        parts_data.sort(key=lambda x: x['total_quantity'], reverse=True)
 
         previous_item = Item.objects.filter(pk__lt=item_id).order_by('-pk').first()
         next_item = Item.objects.filter(pk__gt=item_id).order_by('pk').first()
@@ -443,6 +542,8 @@ class ItemDetailView(LoginRequiredMixin, View):
                 'item': item, 
                 'colors_by_type': dict(colors_by_type), 
                 'lists': lists,
+                'parts': parts,
+                'parts_data': parts_data,
                 'previous_item_id': previous_item.pk if previous_item else None,
                 'next_item_id': next_item.pk if next_item else None,
                 'initial_color_id': initial_color_id,
