@@ -3,7 +3,26 @@
 {% load static %}
 {% load custom_filters %}
 {% block content %}
-
+<style>
+/* CSS for color number */
+.color-num {
+    font-size: 12px;
+    color: #000000; /* Text color */
+}
+/* Tooltip styles (Bootstrap) */
+.tooltip-inner {
+    max-width: 200px; /* Set the maximum width for the tooltip */
+    text-align: center;
+    color: #000000;
+    background-color: #FFFFFF;
+    box-shadow: 0px 0px 4px black;
+    opacity: 2 !important;
+}
+.bs-tooltip-top .tooltip-arrow::before,
+.bs-tooltip-auto[data-popper-placement^=top] .tooltip-arrow::before {
+    border-top-color: #FFFFFF;
+}
+</style>
     <div class="d-flex justify-content-end mb-2">
         <button
             id="toggleAggregatedViewButton"
@@ -13,9 +32,9 @@
             data-view-mode="{% if request.session.view_mode == 'aggregated_view' %}aggregated_view{% else %}part_view{% endif %}"
         >
             {% if request.session.view_mode == 'aggregated_view' %}
-                <i class="fas fa-plus-square"></i> <!-- Icon for aggregated view -->
+                <i class="fas fa-minus-square"></i> <!-- Icon for aggregated view -->
             {% else %}
-                <i class="fas fa-minus-square"></i> <!-- Icon for parts view -->
+                <i class="fas fa-plus-square"></i> <!-- Icon for parts view -->
             {% endif %}
         </button>
 
@@ -50,7 +69,7 @@
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Image</th>
-                        <th scope="col">ItemID</th>
+                        <th scope="col">Item</th>
                         <th scope="col">Color</th>
                         <th scope="col">Qty</th>
                         <th scope="col">Type</th>
@@ -80,8 +99,8 @@
                         <tr>
                             <th scope="row">{{ part_data.aggregated_part.PartID }}</th>
                             <td>
-                                {% if part_data.aggregated_part.InternalURL.url %}
-                                    <img src="{{ part_data.aggregated_part.InternalURL.url }}" alt="{{ part_data.aggregated_part.ItemID.Description }}"
+                                {% if part_data.aggregated_part.ImageReference %}
+                                    <img src="{{ part_data.aggregated_part.ImageReference }}" alt="{{ part_data.aggregated_part.ItemID.Description }}"
                                     class="img-fluid" style="max-width: 50px;">
                                 {% else %}
                                     - No Image -
@@ -91,10 +110,10 @@
                             <td>
                                 <div class="color-swatch"
                                     style="background-color: {{ part_data.aggregated_part.ColorID.RGB }}; padding: 5px; text-align: center;"
-                                    data-toggle="tooltip"
-                                    data-placement="top"
-                                    title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part_data.aggregated_part.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
-                                    data-html="true">
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    data-bs-html="true"
+                                    title="<div style='text-align: center;'><img src='/media/color_images/color.{{ part_data.aggregated_part.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ part_data.aggregated_part.ColorID.HEX }}<br>{{ part_data.aggregated_part.ColorID.Name }}</div>">
                                     <div class="color-num"
                                         style="background: {{ part_data.aggregated_part.ColorID.RGB }}; color: {{ part_data.aggregated_part.ColorID.RGB|is_dark_color }}; font-size: 9px;">{{ part_data.aggregated_part.ColorID.Name }}</div>
                                 </div>
@@ -143,7 +162,7 @@
                     <tr>
                         <th scope="col">ID</th>
                         <th scope="col">Image</th>
-                        <th scope="col">ItemID</th>
+                        <th scope="col">Item</th>
                         <th scope="col">Color</th>
                         <th scope="col">Qty</th>
                         <th scope="col">Type</th>
@@ -172,41 +191,39 @@
                     {% endif %}
 
                     {% for part in page_parts %}
-                        {% for list_part in part.listpart_set.all %}
-                            <tr>
-                                <th scope="row">{{ part.PartID }}</th>
-                                <td>
-                                    {% if part.ImageReference %}
-                                        <img src="{{ part.ImageReference }}" alt="{{ part.ItemID.Description }}" class="img-fluid" style="max-width: 50px;">
-                                    {% else %}
-                                        - No Image -
-                                    {% endif %}       
-                                </td>
-                                <td>{{ part.ItemID }}</td>
-                                <td>
-                                    <div class="color-swatch"
-                                        style="background-color: {{ part.ColorID.RGB }}; padding: 5px; text-align: center;"
-                                        data-toggle="tooltip"
-                                        data-placement="top"
-                                        title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ color.HEX }}<br>{{ color.Name }}</div>"
-                                        data-html="true">
-                                        <div class="color-num"
-                                            style="background: {{ part.ColorID.RGB }}; color: {{ part.ColorID.RGB|is_dark_color }}; font-size: 9px;">{{ part.ColorID.Name }}</div>
-                                    </div>
-                                </td>
-                                <td>{{ list_part.Quantity }}</td>
-                                <td>{{ part.ItemID.TypeID.Name }}</td>
-                                <td>{{ part.ItemID.SubtypeID.Name }}</td>
-                                <td>{{ list_part.ListID.Name }}</td>
-                                {% if list_part.ListID.CategoryID.Name == 'MOC Part' %}
-                                    <td class="text-danger">{{ list_part.ListID.CategoryID.Name }}</td>
+                        <tr>
+                            <th scope="row">{{ part.PartID.PartID }}</th>
+                            <td>
+                                {% if part.PartID.ImageReference %}
+                                    <img src="{{ part.PartID.ImageReference }}" alt="{{ part.PartID.ItemID.Description }}" class="img-fluid" style="max-width: 50px;">
                                 {% else %}
-                                    <td class="text-success">{{ list_part.ListID.CategoryID.Name }}</td>
-                                {% endif %}
-                                <td><a href="{% url 'edit-part' part.PartID %}" class="btn btn-outline-secondary">Edit</a></td>
-                                <td><a href="{% url 'delete-part-list' part.PartID list_part.ListID.ListID list_part.ListID.Name %}" class="btn btn-secondary">Delete</a></td>
-                            </tr>
-                        {% endfor %}
+                                    - No Image -
+                                {% endif %}       
+                            </td>
+                            <td>{{ part.PartID.ItemID }}</td>
+                            <td>
+                                <div class="color-swatch"
+                                    style="background-color: {{ part.PartID.ColorID.RGB }}; padding: 5px; text-align: center;"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    data-bs-html="true"
+                                    title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part.PartID.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ part.ColorID.HEX }}<br>{{ part.ColorID.Name }}</div>">
+                                    <div class="color-num"
+                                        style="background: {{ part.PartID.ColorID.RGB }}; color: {{ part.PartID.ColorID.RGB|is_dark_color }}; font-size: 9px;">{{ part.PartID.ColorID.Name }}</div>
+                                </div>
+                            </td>
+                            <td>{{ part.Quantity }}</td>
+                            <td>{{ part.PartID.ItemID.TypeID.Name }}</td>
+                            <td>{{ part.PartID.ItemID.SubtypeID.Name }}</td>
+                            <td>{{ part.ListID.Name }}</td>
+                            {% if part.ListID.CategoryID.Name == 'MOC Part' %}
+                                <td class="text-danger">{{ part.ListID.CategoryID.Name }}</td>
+                            {% else %}
+                                <td class="text-success">{{ part.ListID.CategoryID.Name }}</td>
+                            {% endif %}
+                            <td><a href="{% url 'edit-part' part.PartID.PartID %}" class="btn btn-outline-secondary">Edit</a></td>
+                            <td><a href="{% url 'delete-part-list' part.PartID.PartID part.ListID.ListID part.ListID.Name %}" class="btn btn-secondary">Delete</a></td>
+                        </tr>
                     {% endfor %}
                     </tbody>
                 </table>
@@ -234,4 +251,15 @@
             
         </div>
     </div>
+
+<script>
+    // Initialize tooltips
+    $(document).ready(function () {
+        $('[data-bs-toggle="tooltip"]').tooltip({
+            trigger: 'hover',
+            html: true,
+            placement: 'top',
+        });
+    });
+</script>
 {% endblock content %}

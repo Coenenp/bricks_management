@@ -11,6 +11,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.db.models import Sum, F, ExpressionWrapper, IntegerField
+from itertools import groupby
+from operator import attrgetter
 from .forms import UserRegisterForm, PartForm, PartListForm, ExcelUploadForm, QuantityForm
 from .models import Part, List, Item, Type, Color, ListPart, ItemAlias, SetList, SetPart, SetListPart
 from collections import defaultdict
@@ -50,37 +52,53 @@ class Index(TemplateView):
 class Dashboard(LoginRequiredMixin, View, Paginator):
     def get(self, request):
         view_mode = request.session.get('view_mode', 'aggregated_view')
-        parts = Part.objects.order_by('ItemID')
-        aggregated_data = []
-        moc_parts = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID')
-        total_moc_quantity = ListPart.objects.filter(ListID__CategoryID__pk=MOC_PART).aggregate(total_quantity=Sum('Quantity'))['total_quantity']
+
+        # Use ListPart model to count parts and sort them
+        parts = ListPart.objects.select_related('PartID__ColorID').select_related('ListID__CategoryID').order_by('PartID__ItemID', 'PartID__ColorID')
+        total_parts_quantity = parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity']
+
+        # Filter MOC parts using ListPart model
+        moc_parts = parts.filter(ListID__CategoryID__pk=MOC_PART).order_by('PartID__ItemID', 'PartID__ColorID')
+        total_moc_quantity = moc_parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity']
+        
+        if moc_parts.count() > 0:
+            messages.info(request, f'Total quantity of MOC parts: {total_moc_quantity} out of {total_parts_quantity}')
+
+        moc_parts_ids = moc_parts.values_list('PartID', flat=True)
 
         items_per_page = 50
         paginator_parts = Paginator(parts, items_per_page)
         page_number = request.GET.get('page', 1)
         page_parts = paginator_parts.get_page(page_number)
 
-        if moc_parts.count() > 0:
-            messages.info(request, f'Total quantity of MOC parts: {total_moc_quantity}')
+        aggregated_data = []
 
-        moc_parts_ids = Part.objects.filter(listpart__ListID__CategoryID__pk=MOC_PART).order_by('ItemID').values_list('PartID', flat=True)
+        # Group parts by PartID for the aggregated view
+        parts_grouped = groupby(parts, key=attrgetter('PartID'))
 
-        for part in parts:
-            # Calculate the aggregated quantity for this part
-            aggregated_quantity = ListPart.objects.filter(PartID=part).aggregate(total_quantity=models.Sum('Quantity'))['total_quantity'] or 0
-
-            # Get a list of lists where this part exists
-            part_lists = List.objects.filter(listpart__PartID=part)
-
-            # Create a dictionary for this part's aggregated data
+        for key, group in parts_grouped:
+            # Create an empty dictionary to hold aggregated data for this part
             part_data = {
-                'aggregated_part': part,
-                'aggregated_quantity': aggregated_quantity,
-                'part_lists': part_lists,
+                'aggregated_part': None,
+                'aggregated_quantity': 0,
+                'part_lists': [],
             }
+
+            for part in group:
+                part_data['aggregated_part'] = part.PartID
+                # Aggregate quantity for this part
+                part_data['aggregated_quantity'] += part.Quantity
+
+                # Get a list of lists where this part exists
+                part_data['part_lists'] = List.objects.filter(listpart__PartID=part.PartID)
 
             # Add the part data to the aggregated data list
             aggregated_data.append(part_data)
+
+        aggregated_data_count = len(aggregated_data)
+        part_count = ListPart.objects.count()
+        print("Aggregated Data Count:", aggregated_data_count)
+        print("Part Count:", part_count)
 
         # Create a separate paginator for aggregated_data
         aggregated_items_per_page = 50
@@ -88,7 +106,6 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
         aggregated_page_number = request.GET.get('aggregated_page', 1)
         page_aggregated_data = paginator_aggregated.get_page(aggregated_page_number)
 
-        # Include the 'view_mode' in the context
         context = {
             'page_parts': page_parts,
             'parts': parts,
@@ -96,6 +113,8 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
             'page_aggregated_data': page_aggregated_data,
             'moc_parts_ids': moc_parts_ids,
             'view_mode': view_mode,
+            'aggregated_data_count': aggregated_data_count,
+            'part_count': part_count,
         }
 
         return render(request, 'bricks/dashboard.html', context)

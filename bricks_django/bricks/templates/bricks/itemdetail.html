@@ -162,8 +162,10 @@
     <br>  
 </div>
 <hr>
-<div>
-    <br>  
+<div class="row mt-3">
+    <div class="col-md-12 col-12 mx-auto">
+        <h2>Part Details</h2>
+    </div>
 </div>
 <hr>
 
@@ -197,8 +199,8 @@
                                 style="background-color: {{ part_info.part.ColorID.RGB }}; padding: 5px; text-align: center;"
                                 data-bs-toggle="tooltip"
                                 data-bs-placement="top"
-                                title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part_info.part.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ part_info.part.ColorID.HEX }}<br>{{ part_info.part.ColorID.Name }}</div>"
-                                data-html="true">
+                                data-bs-html="true"
+                                title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part_info.part.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ part_info.part.ColorID.HEX }}<br>{{ part_info.part.ColorID.Name }}</div>">
                                 <div class="color-num"
                                     style="background: {{ part_info.part.ColorID.RGB }}; color: {{part_info.part.ColorID.RGB|is_dark_color }}; font-size: 9px;">{{ part_info.part.ColorID.Name }}</div>
                             </div>
