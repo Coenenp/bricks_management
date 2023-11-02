@@ -22,28 +22,28 @@ class ToggleView(View):
     http_method_names = ['post']  # Allow only POST requests
 
     def post(self, request):
-        if 'view_mode' in request.session:
-            if request.session['view_mode'] == 'list':
-                request.session['view_mode'] = 'array'
-            else:
-                request.session['view_mode'] = 'list'
+        if (
+            'view_mode' in request.session
+            and request.session['view_mode'] == 'list'
+            or 'view_mode' not in request.session
+        ):
+            request.session['view_mode'] = 'array'
         else:
-            request.session['view_mode'] = 'array'  # Default to array view
-
+            request.session['view_mode'] = 'list'
         return JsonResponse({'new_mode': request.session['view_mode']})
 
 class ToggleAggregatedView(View):
     http_method_names = ['post']  # Allow only POST requests
 
     def post(self, request):
-        if 'view_mode' in request.session:
-            if request.session['view_mode'] == 'part_view':
-                request.session['view_mode'] = 'aggregated_view'
-            else:
-                request.session['view_mode'] = 'part_view'
+        if (
+            'view_mode' in request.session
+            and request.session['view_mode'] == 'part_view'
+            or 'view_mode' not in request.session
+        ):
+            request.session['view_mode'] = 'aggregated_view'
         else:
-            request.session['view_mode'] = 'aggregated_view'  # Default to aggregated view
-
+            request.session['view_mode'] = 'part_view'
         return JsonResponse({'new_mode': request.session['view_mode']})
     
 class Index(TemplateView):
@@ -86,10 +86,6 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
         # Filter MOC parts using ListPart model
         moc_parts = parts.filter(ListID__CategoryID__pk=MOC_PART).order_by('PartID__ItemID', 'PartID__ColorID')
         total_moc_quantity = moc_parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity']
-
-        if moc_parts.count() > 0:
-            messages.info(request, f'Total quantity of MOC parts: {total_moc_quantity} out of {total_parts_quantity}')
-
         moc_parts_ids = moc_parts.values_list('PartID', flat=True)
 
         items_per_page = 50
@@ -123,14 +119,19 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
 
         aggregated_data_count = len(aggregated_data)
         part_count = parts.count()
-        print("Aggregated Data Count:", aggregated_data_count)
-        print("Part Count:", part_count)
 
         # Create a separate paginator for aggregated_data
         aggregated_items_per_page = 50
         paginator_aggregated = Paginator(aggregated_data, aggregated_items_per_page)
         aggregated_page_number = request.GET.get('aggregated_page', 1)
         page_aggregated_data = paginator_aggregated.get_page(aggregated_page_number)
+
+        if total_parts_quantity is None:
+            messages.error(request, 'No bricks found matching your search criteria')
+        elif moc_parts.count() > 0:
+            messages.error(request, f'A total of {total_parts_quantity} bricks shown across {aggregated_data_count} parts. {total_moc_quantity} of those bricks are MOC parts.')
+        else:
+            messages.info(request, f'A total of {total_parts_quantity} bricks shown across {aggregated_data_count} parts.')
 
         context = {
             'page_parts': page_parts,
@@ -334,9 +335,7 @@ class AddListPart(LoginRequiredMixin, CreateView):
         # Save the ListPart instance
         list_part.save()
 
-        # Redirect back to the referring URL
-        referring_url = self.request.session.get('referring_url')
-        if referring_url:
+        if referring_url := self.request.session.get('referring_url'):
             return redirect(referring_url)
         else:
             return redirect('itemview')
@@ -370,16 +369,8 @@ class EditPart(LoginRequiredMixin, UpdateView):
         context['part_lists_data'] = part_lists_data
 
         # Get the previous and next parts
-        previous_part = Part.objects.filter(date_created__lt=part.date_created).order_by('-date_created').first()
-        next_part = Part.objects.filter(date_created__gt=part.date_created).order_by('date_created').first()
-
-        if not next_part:
-            # If there's no next part, wrap around to the first part
-            next_part = Part.objects.order_by('date_created').first()
-
-        if not previous_part:
-            # If there's no previous part, wrap around to the last part
-            previous_part = Part.objects.order_by('-date_created').first()
+        previous_part = Part.objects.filter(date_created__lt=part.date_created).order_by('-date_created').first() or Part.objects.order_by('-date_created').first()
+        next_part = Part.objects.filter(date_created__gt=part.date_created).order_by('date_created').first() or Part.objects.order_by('date_created').first()
 
         context['previous_part'] = previous_part
         context['next_part'] = next_part
@@ -520,14 +511,12 @@ class ItemView(LoginRequiredMixin, View):
 
     def get(self, request):
         view_mode = request.session.get('view_mode', 'list')
-        
+
         # Fetch items and types
         items = Item.objects.order_by('Description')
         types = Type.objects.filter(ParentID=0)
 
-        selected_type_id = request.GET.get('typeFilter')
-
-        if selected_type_id:
+        if selected_type_id := request.GET.get('typeFilter'):
             items = items.filter(TypeID=selected_type_id)
 
         context = {
@@ -570,17 +559,9 @@ class ItemDetailView(LoginRequiredMixin, View):
 
         parts_data.sort(key=lambda x: x['total_quantity'], reverse=True)
 
-        previous_item = Item.objects.filter(pk__lt=item_id).order_by('-pk').first()
-        next_item = Item.objects.filter(pk__gt=item_id).order_by('pk').first()
+        previous_item = Item.objects.filter(pk__lt=item_id).order_by('-pk').first() or Item.objects.order_by('-pk').first()
+        next_item = Item.objects.filter(pk__gt=item_id).order_by('pk').first() or Item.objects.order_by('pk').first()
 
-        # If there's no next item, wrap around to the first item
-        if not next_item:
-            next_item = Item.objects.order_by('pk').first()
-
-        # If there's no previous item, wrap around to the last item
-        if not previous_item:
-            previous_item = Item.objects.order_by('-pk').first()
-            
         # Iterate through your colors and group them by ColorType
         for color in colors:
             colors_by_type[color.ColorType].append(color)
@@ -759,7 +740,7 @@ class ImportPartsView(LoginRequiredMixin, View):
                     except List.DoesNotExist:
                         import_report.append(f'Error: {item_name} (List not found)')
                         continue
-                    
+
                     # Create or get the Part entry
                     part, created = Part.objects.get_or_create(
                         ItemID=item,
@@ -771,10 +752,9 @@ class ImportPartsView(LoginRequiredMixin, View):
                     if created:
                         import_report.append(f'New Part created: {item_name}')
 
-                    # Try to get an existing ListPart entry
-                    listpart = ListPart.objects.filter(ListID=list, PartID=part).first()
-                    
-                    if listpart:
+                    if listpart := ListPart.objects.filter(
+                        ListID=list, PartID=part
+                    ).first():
                         # Update the quantity if the ListPart entry already exists
                         listpart.Quantity += quantity
                         listpart.save()
@@ -854,10 +834,9 @@ class ImportSetPartsView(LoginRequiredMixin, View):
                     if created:
                         import_report.append(f'New Set Part created: {item_name}')
 
-                    # Try to get an existing Set Part entry
-                    setlistpart = SetListPart.objects.filter(SetListID=setlist, SetPartID=setpart).first()
-
-                    if setlistpart:
+                    if setlistpart := SetListPart.objects.filter(
+                        SetListID=setlist, SetPartID=setpart
+                    ).first():
                         # Update the quantity if the Set Part entry already exists
                         setlistpart.Quantity += quantity
                         setlistpart.save()
