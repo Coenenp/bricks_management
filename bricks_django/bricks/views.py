@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.shortcuts import redirect
-from django.db.models import Sum, F, ExpressionWrapper, IntegerField
+from django.db.models import Sum, Q, F, ExpressionWrapper, IntegerField
 from itertools import groupby
 from operator import attrgetter
 from .forms import UserRegisterForm, PartForm, PartListForm, ExcelUploadForm, QuantityForm
@@ -53,14 +53,40 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
     def get(self, request):
         view_mode = request.session.get('view_mode', 'aggregated_view')
 
+        # Fetch distinct colors, types, and subtypes
+        all_colors = Color.objects.filter(WebrickColorID__isnull=False).values('Name').distinct()
+        all_types = Type.objects.filter(ParentID=0).values('Name').distinct()
+        all_subtypes = Type.objects.filter(~Q(ParentID=0)).values('Name').distinct()
+
+        # Get the search query and filter values from request
+        search_query = request.GET.get('q', '')
+        color_filter = request.GET.get('color', '')
+        type_filter = request.GET.get('type', '')
+        subtype_filter = request.GET.get('subtype', '')
+
         # Use ListPart model to count parts and sort them
         parts = ListPart.objects.select_related('PartID__ColorID').select_related('ListID__CategoryID').order_by('PartID__ItemID', 'PartID__ColorID')
+
+        # Filter parts based on the search query
+        if search_query:
+            parts = parts.filter(
+                Q(PartID__ItemID__Name__icontains=search_query) |
+                Q(PartID__ItemID__Description__icontains=search_query) |
+                Q(PartID__ColorID__Name__icontains=search_query)
+            )
+        if color_filter:
+            parts = parts.filter(PartID__ColorID__Name__icontains=color_filter)
+        if type_filter:
+            parts = parts.filter(PartID__ItemID__TypeID__Name__icontains=type_filter)
+        if subtype_filter:
+            parts = parts.filter(PartID__ItemID__SubtypeID__Name__icontains=subtype_filter)
+
         total_parts_quantity = parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity']
 
         # Filter MOC parts using ListPart model
         moc_parts = parts.filter(ListID__CategoryID__pk=MOC_PART).order_by('PartID__ItemID', 'PartID__ColorID')
         total_moc_quantity = moc_parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity']
-        
+
         if moc_parts.count() > 0:
             messages.info(request, f'Total quantity of MOC parts: {total_moc_quantity} out of {total_parts_quantity}')
 
@@ -96,7 +122,7 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
             aggregated_data.append(part_data)
 
         aggregated_data_count = len(aggregated_data)
-        part_count = ListPart.objects.count()
+        part_count = parts.count()
         print("Aggregated Data Count:", aggregated_data_count)
         print("Part Count:", part_count)
 
@@ -112,12 +138,17 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
             'aggregated_data': aggregated_data,
             'page_aggregated_data': page_aggregated_data,
             'moc_parts_ids': moc_parts_ids,
+            'search_query': search_query,
+            'total_parts_quantity': total_parts_quantity,
+            'total_moc_quantity': total_moc_quantity,
+            'all_colors': all_colors,
+            'all_types': all_types,
+            'all_subtypes': all_subtypes,
             'view_mode': view_mode,
-            'aggregated_data_count': aggregated_data_count,
-            'part_count': part_count,
         }
 
         return render(request, 'bricks/dashboard.html', context)
+
 
 class ListView(LoginRequiredMixin, View):
     def get(self, request):

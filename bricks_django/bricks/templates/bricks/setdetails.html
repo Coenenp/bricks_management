@@ -22,7 +22,7 @@
                         src="{{ setlist.ImageReference }}"
                         alt="{{ setlist.Name }}"
                         class="img-fluid"
-                        style="max-width: 90%; max-height: 90%; margin: 0 auto;"
+                        style="max-width: 80%; max-height: 90%; margin: 0 auto;"
                         data-magnify-src="{{ setlist.ImageReference }}"
                         />
                 {% else %}
@@ -136,7 +136,7 @@
             const hideOkItems = hideOkCheckbox.checked;
 
             for (let i = 1; i < rows.length; i++) { // Start from 1 to skip the table header row
-                const missingPartsCell = rows[i].cells[5]; // Assuming the "Missing Parts" cell is the 6th cell
+                const missingPartsCell = rows[i].cells[6]; // Assuming the "Missing Parts" cell is the 7th cell
 
                 if (hideOkItems && missingPartsCell.textContent.trim() === "OK!") {
                     rows[i].style.display = "none";
