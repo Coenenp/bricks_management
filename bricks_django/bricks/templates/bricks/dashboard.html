@@ -60,40 +60,34 @@
         <div class="col-md-10 col-12 mx-auto mt-5">
             <form method="get" action="{% url 'dashboard' %}">
                 <div class="d-flex justify-content-between">
-                    <div class="input-group" style="width: 25%;">
-                        <input type="text" name="q" class="form-control" placeholder="Search by Item" value="{{ request.GET.q }}">
+                    <div class="form-group">
+                        <label for="searchField" style="margin-right: 10px;">Search:</label>
+                        <input type="text" id="searchField" name="q" class="form-control" placeholder="Search by Item" value="{{ request.GET.q }}">
                     </div>
-                    <button type="submit" class="btn btn-primary">Search</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <div class="row">
-        <div class="col-md-10 col-12 mx-auto mt-2">
-            <form method="get" action="{% url 'dashboard' %}">
-                <div class="d-flex justify-content-between">
-                    <div class="input-group" style="width: 25%;">
-                        <select name="color" class="form-control">
-                            <option value="">Filter by Color</option>
+                    <div class="form-group">
+                        <label for="colorFilter" style="margin-right: 10px;">Color:</label>
+                        <select class="form-control" id="colorFilter" name="colorFilter">
+                            <option value="">All Colors</option>
                             {% for color in all_colors %}
                                 <option value="{{ color.Name }}">{{ color.Name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="input-group" style="width: 25%;">
-                        <select name="type" class="form-control">
-                            <option value="">Filter by Type</option>
+                    <div class="form-group">
+                        <label for="typeFilter" style="margin-right: 10px;">Type:</label>
+                        <select class="form-control" id="typeFilter" name="typeFilter">
+                            <option value="">All Types</option>
                             {% for type in all_types %}
-                                <option value="{{ type.Name }}">{{ type.Name }}</option>
+                                <option value="{{ type.TypeID }}">{{ type.Name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="input-group" style="width: 25%;">
-                        <select name="subtype" class="form-control">
-                            <option value="">Filter by Subtype</option>
+                    <div class="form-group">
+                        <label for="subtypeFilter" style="margin-right: 10px;">Subtype:</label>
+                        <select class="form-control" id="subtypeFilter" name="subtypeFilter">
+                            <option value="">All Subtypes</option>
                             {% for subtype in all_subtypes %}
-                                <option value="{{ subtype.Name }}">{{ subtype.Name }}</option>
+                                <option value="{{ subtype.TypeID }}">{{ subtype.Name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -307,6 +301,35 @@
             html: true,
             placement: 'top',
         });
+    });
+
+    // Get references to the type and subtype dropdowns
+    const typeFilter = document.getElementById("typeFilter");
+    const subtypeFilter = document.getElementById("subtypeFilter");
+
+    // Add a change event listener to the type dropdown
+    typeFilter.addEventListener("change", function() {
+        // Get the selected type value
+        const selectedType = typeFilter.value;
+        const url = `/get-subtypes/?type=${selectedType}`;
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                // Clear current subtype options
+                subtypeFilter.innerHTML = '<option value="">All Subtypes</option>';
+
+                // Add new subtype options based on the AJAX response
+                for (const subtype of data) {
+                    const option = document.createElement("option");
+                    option.value = subtype.TypeID;
+                    option.text = subtype.Name;
+                    subtypeFilter.appendChild(option);
+                }
+            })
+            .catch(error => {
+                console.error(error);
+            });
     });
 </script>
 {% endblock content %}

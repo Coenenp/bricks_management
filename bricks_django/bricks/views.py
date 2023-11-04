@@ -55,14 +55,14 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
 
         # Fetch distinct colors, types, and subtypes
         all_colors = Color.objects.filter(WebrickColorID__isnull=False).values('Name').distinct()
-        all_types = Type.objects.filter(ParentID=0).values('Name').distinct()
-        all_subtypes = Type.objects.filter(~Q(ParentID=0)).values('Name').distinct()
+        all_types = Type.objects.filter(ParentID=0)
+        all_subtypes = Type.objects.filter(~Q(ParentID=0))
 
         # Get the search query and filter values from request
         search_query = request.GET.get('q', '')
-        color_filter = request.GET.get('color', '')
-        type_filter = request.GET.get('type', '')
-        subtype_filter = request.GET.get('subtype', '')
+        color_filter = request.GET.get('colorFilter', '')
+        type_filter = request.GET.get('typeFilter', '')
+        subtype_filter = request.GET.get('subtypeFilter', '')
 
         # Use ListPart model to count parts and sort them
         parts = ListPart.objects.select_related('PartID__ColorID').select_related('ListID__CategoryID').order_by('PartID__ItemID', 'PartID__ColorID')
@@ -74,12 +74,12 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
                 Q(PartID__ItemID__Description__icontains=search_query) |
                 Q(PartID__ColorID__Name__icontains=search_query)
             )
-        if color_filter:
-            parts = parts.filter(PartID__ColorID__Name__icontains=color_filter)
-        if type_filter:
-            parts = parts.filter(PartID__ItemID__TypeID__Name__icontains=type_filter)
-        if subtype_filter:
-            parts = parts.filter(PartID__ItemID__SubtypeID__Name__icontains=subtype_filter)
+        if color_filter and color_filter != "undefined":
+            parts = parts.filter(PartID__ColorID__Name=color_filter)
+        if type_filter and type_filter != "undefined":
+            parts = parts.filter(PartID__ItemID__TypeID__TypeID=type_filter)
+        if subtype_filter and subtype_filter != "undefined":
+            parts = parts.filter(PartID__ItemID__SubtypeID__TypeID=subtype_filter)
 
         total_parts_quantity = parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity']
 
@@ -511,17 +511,38 @@ class ItemView(LoginRequiredMixin, View):
 
     def get(self, request):
         view_mode = request.session.get('view_mode', 'list')
+        
+        # Get the search query and filter values from request
+        search_query = request.GET.get('q', '')
+        selected_type = request.GET.get('typeFilter', '')
+        selected_subtype = request.GET.get('subtypeFilter', '')
 
         # Fetch items and types
         items = Item.objects.order_by('Description')
         types = Type.objects.filter(ParentID=0)
+        subtypes = Type.objects.filter(~Q(ParentID=0))
 
-        if selected_type_id := request.GET.get('typeFilter'):
-            items = items.filter(TypeID=selected_type_id)
+        # Filter parts based on the search query
+        if search_query:
+            items = items.filter(
+                Q(Name__icontains=search_query) |
+                Q(Description__icontains=search_query)
+            )
+
+        if selected_type and selected_type != "undefined":
+            items = items.filter(TypeID=selected_type)
+        if selected_subtype and selected_subtype != "undefined":
+            items = items.filter(SubtypeID=selected_subtype)
+            
+        if items.count() > 0:
+            messages.info(request, f'A total of {items.count()} items out of {Item.objects.count()} shown.')
+        else:
+            messages.error(request, f'No items found matching your search criteria. {Item.objects.count()} available.')
 
         context = {
             'items': items,
             'types': types,
+            'subtypes': subtypes,
             'view_mode': view_mode,
         }
         return render(request, self.template_name, context)
@@ -870,3 +891,18 @@ class ExcelUploadView(LoginRequiredMixin, View):
 
             return HttpResponseRedirect('/admin/bricks/item/')
         return render(request, self.template_name, {'form': form})
+
+class GetSubtypesView(View):
+    def get(self, request):
+        # Get the selected type from the request's query parameters
+        selected_type = request.GET.get("type", "")
+
+        # Initialize an empty list to store subtypes
+        subtypes = []
+
+        # If a type is selected, filter subtypes based on the selected type
+        if selected_type:
+            subtypes = Type.objects.filter(ParentID=selected_type).values("TypeID", "Name")
+
+        # Return the subtypes as JSON response
+        return JsonResponse(list(subtypes), safe=False)

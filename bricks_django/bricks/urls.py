@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import Index, SignUpView, Dashboard, SetListView, SetListPartView, ListView, ItemView, ToggleView, ToggleAggregatedView, AddtoList, AddPart, AddListPart, EditPart, UpdateAvailableParts, EditPartQuantity, DeletePart, DeletePartFromList, GetValidSubtypesView, ImportItemsView, ImportPartsView, ImportSetPartsView, ItemDetailView
+from .views import Index, SignUpView, Dashboard, SetListView, SetListPartView, ListView, ItemView, ToggleView, ToggleAggregatedView, AddtoList, AddPart, AddListPart, EditPart, UpdateAvailableParts, EditPartQuantity, DeletePart, DeletePartFromList, GetValidSubtypesView, ImportItemsView, ImportPartsView, ImportSetPartsView, ItemDetailView, GetSubtypesView
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
@@ -29,6 +29,7 @@ urlpatterns = [
     path('import_items/', ImportItemsView.as_view(), name='import_items'),
     path('import_parts/', ImportPartsView.as_view(), name='import_parts'),
     path('import_set_parts/', ImportSetPartsView.as_view(), name='import_set_parts'),
+    path('get-subtypes/', GetSubtypesView.as_view(), name='get-subtypes'),
 ]
 
 if settings.DEBUG:
