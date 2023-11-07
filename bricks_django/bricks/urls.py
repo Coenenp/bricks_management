@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import Index, SignUpView, Dashboard, SetListView, SetListPartView, ListView, ItemView, ToggleView, ToggleAggregatedView, AddtoList, AddPart, AddListPart, EditPart, UpdateAvailableParts, EditPartQuantity, DeletePart, DeletePartFromList, GetValidSubtypesView, ImportItemsView, ImportPartsView, ImportSetPartsView, ItemDetailView, GetSubtypesView
+from .views import Index, SignUpView, Dashboard, SetListView, SetListPartView, ListView, ItemView, ToggleView, ToggleAggregatedView, AddtoList, AddPart, AddListPart, EditPart, UpdateAvailableParts, EditPartQuantity, DeletePart, DeleteItem, DeletePartFromList, ImportItemsView, ImportPartsView, ImportSetPartsView, ItemDetailView, GetSubtypesView
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
@@ -22,13 +22,13 @@ urlpatterns = [
     path('update_available_parts/<int:item_id>/', UpdateAvailableParts.as_view(), name='update_available_parts'),
     path('delete-part-list/<int:pk>/<int:list_id>/<str:list_name>/', DeletePartFromList.as_view(), name='delete-part-list'),
     path('delete-part/<int:pk>', DeletePart.as_view(), name='delete-part'),
+    path('delete-item/<int:pk>', DeleteItem.as_view(), name='delete-item'),
     path('signup/', SignUpView.as_view(), name='signup'),
     path('login/', auth_views.LoginView.as_view(template_name='bricks/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(template_name='bricks/logout.html'), name='logout'),
-    path('get_valid_subtypes/', GetValidSubtypesView.as_view(), name='get_valid_subtypes'),
-    path('import_items/', ImportItemsView.as_view(), name='import_items'),
-    path('import_parts/', ImportPartsView.as_view(), name='import_parts'),
-    path('import_set_parts/', ImportSetPartsView.as_view(), name='import_set_parts'),
+    path('import-items/', ImportItemsView.as_view(), name='import-items'),
+    path('import-parts/', ImportPartsView.as_view(), name='import-parts'),
+    path('import-set-parts/', ImportSetPartsView.as_view(), name='import-set-parts'),
     path('get-subtypes/', GetSubtypesView.as_view(), name='get-subtypes'),
 ]
 

@@ -85,15 +85,15 @@ class ItemAdmin(admin.ModelAdmin):
             return ''
     local_image.short_description = 'Image'
 
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path('upload_excel/', self.admin_site.admin_view(self.upload_excel_view), name='upload_excel'),
-        ]
-        return custom_urls + urls
+    #def get_urls(self):
+    #    urls = super().get_urls()
+    #    custom_urls = [
+    #        path('upload_excel/', self.admin_site.admin_view(self.upload_excel_view), name='upload_excel'),
+    #    ]
+    #    return custom_urls + urls
 
-    def upload_excel_view(self, request):
-        return HttpResponseRedirect(reverse('admin:import_items'))
+    #def upload_excel_view(self, request):
+    #    return HttpResponseRedirect(reverse('admin:import-items'))
 
     list_filter = [ParentTypeFilter]
     search_fields = ['Name', 'Description']

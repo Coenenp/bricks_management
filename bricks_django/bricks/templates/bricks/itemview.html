@@ -153,8 +153,8 @@
 							</td>
 							<td>{{ item.TypeID.Name }}</td>
                             <td>{{ item.SubtypeID.Name }}</td>
-                            <td><a href="#" class="btn btn-outline-secondary">Edit</a></td>
-                            <td><a href="#" class="btn btn-secondary">Delete</a></td>
+                            <td><a href="{% url 'itemdetail' item.ItemID %}" class="btn btn-outline-secondary">Edit</a></td>
+                            <td><a href="{% url 'delete-item' item.ItemID %}" class="btn btn-secondary">Delete</a></td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -182,8 +182,8 @@
 								<p class="card-text">Type: {{ item.TypeID.Name }}</p>
 								<p class="card-text">Subtype: {{ item.SubtypeID.Name }}</p>
 								<div class="button-container">
-									<a href="#" class="btn btn-outline-secondary">Edit</a>
-									<a href="#" class="btn btn-secondary">Delete</a>
+									<a href="{% url 'itemdetail' item.ItemID %}" class="btn btn-outline-secondary">Edit</a>
+									<a href="{% url 'delete-item' item.ItemID %}" class="btn btn-secondary">Delete</a>
 								</div>
 							</div>							
                         </div>

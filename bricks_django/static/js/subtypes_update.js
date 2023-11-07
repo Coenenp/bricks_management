@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (selectedType) {
             try {
-                const response = await fetch(`/get_valid_subtypes/?type_id=${selectedType}`);
+                const response = await fetch(`/get-subtypes/?type=${selectedType}`);
                 const data = await response.json();
 
                 subtypeSelect.innerHTML = '';

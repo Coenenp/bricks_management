@@ -443,6 +443,12 @@ class DeletePart(LoginRequiredMixin, DeleteView):
 	success_url = reverse_lazy('dashboard')
 	context_object_name = 'part'
 
+class DeleteItem(LoginRequiredMixin, DeleteView):
+	model = Item
+	template_name = 'bricks/delete_item.html'
+	success_url = reverse_lazy('itemview')
+	context_object_name = 'item'
+
 class DeletePartFromList(LoginRequiredMixin, View):
     template_name = 'bricks/delete_part_list.html'  # Use the confirmation template
 
@@ -645,14 +651,8 @@ class AddtoList(LoginRequiredMixin, View):
             }
             return JsonResponse(response_data, status=400)
 
-class GetValidSubtypesView(View):
-    def get(self, request):
-        type_id = request.GET.get('type_id')
-        valid_subtypes = Type.objects.filter(ParentID=type_id).values('TypeID', 'Name')
-        return JsonResponse(list(valid_subtypes), safe=False)
-
 class ImportItemsView(LoginRequiredMixin, View):
-    template_name = 'bricks/import_items.html'
+    template_name = 'bricks/import-items.html'
     
     def get(self, request):
         form = ExcelUploadForm()
@@ -708,14 +708,14 @@ class ImportItemsView(LoginRequiredMixin, View):
 
                     item.save()  # Save the Item instance after related objects are saved
 
-                return render(request, 'bricks/import_report.html', {'import_report': import_report})
+                return render(request, 'bricks/import-report.html', {'import_report': import_report})
             except Exception as e:
-                return render(request, 'bricks/import_report.html', {'import_report': [f'Error: {str(e)}']})
+                return render(request, 'bricks/import-report.html', {'import_report': [f'Error: {str(e)}']})
 
         return render(request, self.template_name, {'form': form})
 
 class ImportPartsView(LoginRequiredMixin, View):
-    template_name = 'bricks/import_parts.html'
+    template_name = 'bricks/import-parts.html'
     
     def get(self, request):
         form = ExcelUploadForm()
@@ -789,14 +789,14 @@ class ImportPartsView(LoginRequiredMixin, View):
                         )
                         import_report.append(f'Success: {item_name} added to {list_name}')
 
-                return render(request, 'bricks/import_report.html', {'import_report': import_report})
+                return render(request, 'bricks/import-report.html', {'import_report': import_report})
             except Exception as e:
-                return render(request, 'bricks/import_report.html', {'import_report': [f'Error: {str(e)}']})
+                return render(request, 'bricks/import-report.html', {'import_report': [f'Error: {str(e)}']})
 
         return render(request, self.template_name, {'form': form})
 
 class ImportSetPartsView(LoginRequiredMixin, View):
-    template_name = 'bricks/import_set_parts.html'
+    template_name = 'bricks/import-set-parts.html'
     
     def get(self, request):
         form = ExcelUploadForm()
@@ -871,25 +871,10 @@ class ImportSetPartsView(LoginRequiredMixin, View):
                         )
                         import_report.append(f'Success: {item_name} added to {setlist_name}')
 
-                return render(request, 'bricks/import_report.html', {'import_report': import_report})
+                return render(request, 'bricks/import-report.html', {'import_report': import_report})
             except Exception as e:
-                return render(request, 'bricks/import_report.html', {'import_report': [f'Error: {str(e)}']})
+                return render(request, 'bricks/import-report.html', {'import_report': [f'Error: {str(e)}']})
 
-        return render(request, self.template_name, {'form': form})
-
-class ExcelUploadView(LoginRequiredMixin, View):
-    template_name = 'admin/upload_excel.html'
-
-    def get(self, request):
-        form = ExcelUploadForm()
-        return render(request, self.template_name, {'form': form})
-
-    def post(self, request):
-        form = ExcelUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            excel_file = form.cleaned_data['excel_file']
-
-            return HttpResponseRedirect('/admin/bricks/item/')
         return render(request, self.template_name, {'form': form})
 
 class GetSubtypesView(View):
