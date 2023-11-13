@@ -12,7 +12,7 @@ from django.contrib import messages
 from django.shortcuts import redirect
 from django.db.models import Sum, Q, F, ExpressionWrapper, IntegerField
 from itertools import groupby
-from operator import attrgetter
+from operator import attrgetter, itemgetter
 from .forms import UserRegisterForm, PartForm, PartListForm, ExcelUploadForm, QuantityForm
 from .models import Part, List, Item, Type, Color, ListPart, ItemAlias, SetList, SetPart, SetListPart
 from collections import defaultdict
@@ -37,15 +37,15 @@ class ToggleAggregatedView(View):
 
     def post(self, request):
         if (
-            'view_mode' in request.session
-            and request.session['view_mode'] == 'part_view'
-            or 'view_mode' not in request.session
+            'view_mode_dashboard' in request.session
+            and request.session['view_mode_dashboard'] == 'part_view'
+            or 'view_mode_dashboard' not in request.session
         ):
-            request.session['view_mode'] = 'aggregated_view'
+            request.session['view_mode_dashboard'] = 'aggregated_view'
         else:
-            request.session['view_mode'] = 'part_view'
-        return JsonResponse({'new_mode': request.session['view_mode']})
-    
+            request.session['view_mode_dashboard'] = 'part_view'
+        return JsonResponse({'new_mode': request.session['view_mode_dashboard']})
+
 class Index(TemplateView):
     template_name = 'bricks/index.html'
 
@@ -63,9 +63,26 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
         color_filter = request.GET.get('colorFilter', '')
         type_filter = request.GET.get('typeFilter', '')
         subtype_filter = request.GET.get('subtypeFilter', '')
+        
+        #Get sort field and order
+        sort_field = request.GET.get('sort', '')
+        sort_order = request.GET.get('order', '') 
+        default_sort = ('PartID__ItemID', 'PartID__ColorID__Name')
+        
+        parts = ListPart.objects.select_related('PartID__ColorID').select_related('ListID__CategoryID').order_by(*default_sort)
 
-        # Use ListPart model to count parts and sort them
-        parts = ListPart.objects.select_related('PartID__ColorID').select_related('ListID__CategoryID').order_by('PartID__ItemID', 'PartID__ColorID')
+        sort_field_mappings = {
+            'item': ('PartID__ItemID__Name', 'PartID__ColorID__Name'),
+            'color': ('PartID__ColorID__Name', 'PartID__ItemID__Name'),
+        }
+
+        if sort_field in sort_field_mappings:
+            order_by = sort_field_mappings[sort_field]
+
+            if sort_order == 'desc':
+                order_by = tuple(['-' + field for field in order_by])
+
+            parts = parts.order_by(*order_by)
 
         # Filter parts based on the search query
         if search_query:
@@ -82,16 +99,6 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
             parts = parts.filter(PartID__ItemID__SubtypeID__TypeID=subtype_filter)
 
         total_parts_quantity = parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity']
-
-        # Filter MOC parts using ListPart model
-        moc_parts = parts.filter(ListID__CategoryID__pk=MOC_PART).order_by('PartID__ItemID', 'PartID__ColorID')
-        total_moc_quantity = moc_parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity']
-        moc_parts_ids = moc_parts.values_list('PartID', flat=True)
-
-        items_per_page = 50
-        paginator_parts = Paginator(parts, items_per_page)
-        page_number = request.GET.get('page', 1)
-        page_parts = paginator_parts.get_page(page_number)
 
         aggregated_data = []
 
@@ -110,21 +117,40 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
                 part_data['aggregated_part'] = part.PartID
                 # Aggregate quantity for this part
                 part_data['aggregated_quantity'] += part.Quantity
-
                 # Get a list of lists where this part exists
                 part_data['part_lists'] = List.objects.filter(listpart__PartID=part.PartID)
 
             # Add the part data to the aggregated data list
             aggregated_data.append(part_data)
+            
+        if sort_field == 'qty':
+            order_by = ('-Quantity',)
+            if sort_order == 'desc':
+                order_by = ('Quantity',)
+                
+            parts = parts.order_by(*order_by)
+            aggregated_data_order_by = lambda x: x['aggregated_quantity']
+            aggregated_data = sorted(aggregated_data, key=aggregated_data_order_by, reverse=(sort_order == 'asc'))
 
         aggregated_data_count = len(aggregated_data)
         part_count = parts.count()
+        
+        # Create paginator for parts
+        items_per_page = 50
+        paginator_parts = Paginator(parts, items_per_page)
+        page_number = request.GET.get('page', 1)
+        page_parts = paginator_parts.get_page(page_number)
 
-        # Create a separate paginator for aggregated_data
+        # Create a separate paginator for aggregated parts
         aggregated_items_per_page = 50
         paginator_aggregated = Paginator(aggregated_data, aggregated_items_per_page)
         aggregated_page_number = request.GET.get('aggregated_page', 1)
         page_aggregated_data = paginator_aggregated.get_page(aggregated_page_number)
+        
+        # Filter MOC parts using ListPart model
+        moc_parts = parts.filter(ListID__CategoryID__pk=MOC_PART).order_by('PartID__ItemID', 'PartID__ColorID')
+        total_moc_quantity = moc_parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity']
+        moc_parts_ids = moc_parts.values_list('PartID', flat=True)
 
         if total_parts_quantity is None:
             messages.error(request, 'No bricks found matching your search criteria')
@@ -146,6 +172,12 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
             'all_types': all_types,
             'all_subtypes': all_subtypes,
             'view_mode': view_mode,
+            'sort': sort_field,
+            'order': sort_order,
+            'q': search_query,
+            'colorFilter': color_filter,
+            'typeFilter': type_filter,
+            'subtypeFilter': subtype_filter,
         }
 
         return render(request, 'bricks/dashboard.html', context)
@@ -252,7 +284,7 @@ class SetListPartView(LoginRequiredMixin, View):
             'previous_setlist_id': previous_setlist.pk if previous_setlist else None,
             'next_setlist_id': next_setlist.pk if next_setlist else None,
         }
-        return render(request, 'bricks/setdetails.html', context)
+        return render(request, 'bricks/setdetail.html', context)
 
 class SignUpView(View):
 	def get(self, request):
@@ -277,7 +309,7 @@ class SignUpView(View):
 class AddPart(LoginRequiredMixin, CreateView):
     model = Part
     form_class = PartForm
-    template_name = 'bricks/add_part.html'
+    template_name = 'bricks/add-part.html'
     success_url = reverse_lazy('dashboard')
 
     def get_context_data(self, **kwargs):
@@ -316,7 +348,7 @@ class AddPart(LoginRequiredMixin, CreateView):
 class AddListPart(LoginRequiredMixin, CreateView):
     model = ListPart
     form_class = PartListForm
-    template_name = 'bricks/add_list_part.html'
+    template_name = 'bricks/add-list-part.html'
 
     def form_valid(self, form):
         part_id = self.kwargs['pk']
@@ -346,10 +378,10 @@ class AddListPart(LoginRequiredMixin, CreateView):
         kwargs['part_id'] = self.kwargs['pk']
         return kwargs
 
-class EditPart(LoginRequiredMixin, UpdateView):
+class PartDetailView(LoginRequiredMixin, UpdateView):
     model = Part
     form_class = PartForm
-    template_name = 'bricks/edit_part.html'
+    template_name = 'bricks/partdetail.html'
     success_url = reverse_lazy('dashboard')
 
     def get_context_data(self, **kwargs):
@@ -376,7 +408,7 @@ class EditPart(LoginRequiredMixin, UpdateView):
         context['next_part'] = next_part
 
         # Set the referring URL in the session
-        referring_url = reverse('edit-part', args=[part.pk])
+        referring_url = reverse('partdetail', args=[part.pk])
         self.request.session['referring_url'] = referring_url
 
         return context
@@ -439,18 +471,18 @@ class UpdateAvailableParts(View):
 
 class DeletePart(LoginRequiredMixin, DeleteView):
 	model = Part
-	template_name = 'bricks/delete_part.html'
+	template_name = 'bricks/delete-part.html'
 	success_url = reverse_lazy('dashboard')
 	context_object_name = 'part'
 
 class DeleteItem(LoginRequiredMixin, DeleteView):
 	model = Item
-	template_name = 'bricks/delete_item.html'
+	template_name = 'bricks/delete-item.html'
 	success_url = reverse_lazy('itemview')
 	context_object_name = 'item'
 
 class DeletePartFromList(LoginRequiredMixin, View):
-    template_name = 'bricks/delete_part_list.html'  # Use the confirmation template
+    template_name = 'bricks/delete-part-list.html'  # Use the confirmation template
 
     def get(self, request, *args, **kwargs):
         # Retrieve the part and list information for confirmation
@@ -524,9 +556,29 @@ class ItemView(LoginRequiredMixin, View):
         selected_subtype = request.GET.get('subtypeFilter', '')
 
         # Fetch items and types
-        items = Item.objects.order_by('Description')
+        items = Item.objects.all()
         types = Type.objects.filter(ParentID=0)
         subtypes = Type.objects.filter(~Q(ParentID=0))
+        
+        #Get sort field and order
+        sort_field = request.GET.get('sort', '')
+        sort_order = request.GET.get('order', '') 
+        default_sort = ('Description',)
+        
+        items = items.order_by(*default_sort)
+
+        sort_field_mappings = {
+            'id': ('ItemID',),
+            'name': ('Name',),
+            'description': ('Description',),
+        }
+        if sort_field in sort_field_mappings:
+            order_by = sort_field_mappings[sort_field]
+
+            if sort_order == 'desc':
+                order_by = tuple(['-' + field for field in order_by])
+
+            items = items.order_by(*order_by)
 
         # Filter parts based on the search query
         if search_query:
@@ -545,11 +597,23 @@ class ItemView(LoginRequiredMixin, View):
         else:
             messages.error(request, f'No items found matching your search criteria. {Item.objects.count()} available.')
 
+        items_per_page = 50
+        paginator_parts = Paginator(items, items_per_page)
+        page_number = request.GET.get('page', 1)
+        page_items = paginator_parts.get_page(page_number)
+
         context = {
             'items': items,
             'types': types,
             'subtypes': subtypes,
+            'q': search_query,
             'view_mode': view_mode,
+            'page_items': page_items,
+            'sort': sort_field,
+            'order': sort_order,
+            'search_query': search_query,
+            'selected_type': selected_type,
+            'selected_subtype': selected_subtype,
         }
         return render(request, self.template_name, context)
     

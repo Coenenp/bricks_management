@@ -1,50 +1,55 @@
 {% extends 'bricks/base.html' %}
 {% load fontawesome_5 %}
 {% load static %}
+{% load custom_filters %}
 {% block content %}
-    <style>
-		/* Reduce the gap between columns for cards */
-		.custom-card-col {
-			padding-right: 5px;
-            padding-left: 5px;
-		}
-	
-		/* Override card width to maintain column layout */
-		.custom-card {
-			width: 100%;
-		}
-        /* CSS for aspect ratio container */
-        .aspect-ratio-container {
-            position: relative;
-            overflow: hidden;
-            padding-bottom: 75%; /* Set the desired aspect ratio (e.g., 4:3) */
-        }
-		.card-text {
-			max-height: 3em; /* Adjust the height to your preference */
-			overflow: hidden;
-			text-overflow: ellipsis; /* Add an ellipsis (...) to indicate truncated text */
-			white-space: nowrap; /* Prevent text from wrapping */
-		}		
-        /* CSS for the image within the aspect ratio container */
-        .aspect-ratio-item {
-            position: absolute;
-            top: 50%; /* Center vertically */
-            left: 50%; /* Center horizontally */
-            transform: translate(-50%, -50%); /* Center the image */
-            width: auto;
-            height: auto;
-            max-width: calc(100% - 40px); /* Subtract twice the space for max width */
-            max-height: calc(100% - 40px); /* Subtract twice the space for max height */
-            object-fit: contain; /* Scale the image to contain within the container */
-        }
-
-        /* CSS for button container */
-        .button-container {
-            margin-top: auto; /* Push the buttons to the bottom */
-            display: flex;
-            justify-content: space-between; /* Space the buttons evenly */
-        }
-    </style>
+<style>
+    /* Sortable column headers*/
+    .sort-indicator {
+        font-size: 16px; /* Adjust the size as needed */
+        margin-left: 10px; /* Adjust the spacing as needed */
+        display: inline-block;
+    }
+    /* Reduce the gap between columns for cards */
+    .custom-card-col {
+        padding-right: 5px;
+        padding-left: 5px;
+    }
+    /* Override card width to maintain column layout */
+    .custom-card {
+        width: 100%;
+    }
+    /* CSS for aspect ratio container */
+    .aspect-ratio-container {
+        position: relative;
+        overflow: hidden;
+        padding-bottom: 75%; /* Set the desired aspect ratio (e.g., 4:3) */
+    }
+    .card-text {
+        max-height: 3em; /* Adjust the height to your preference */
+        overflow: hidden;
+        text-overflow: ellipsis; /* Add an ellipsis (...) to indicate truncated text */
+        white-space: nowrap; /* Prevent text from wrapping */
+    }		
+    /* CSS for the image within the aspect ratio container */
+    .aspect-ratio-item {
+        position: absolute;
+        top: 50%; /* Center vertically */
+        left: 50%; /* Center horizontally */
+        transform: translate(-50%, -50%); /* Center the image */
+        width: auto;
+        height: auto;
+        max-width: calc(100% - 40px); /* Subtract twice the space for max width */
+        max-height: calc(100% - 40px); /* Subtract twice the space for max height */
+        object-fit: contain; /* Scale the image to contain within the container */
+    }
+    /* CSS for button container */
+    .button-container {
+        margin-top: auto; /* Push the buttons to the bottom */
+        display: flex;
+        justify-content: space-between; /* Space the buttons evenly */
+    }
+</style>
     <div class="d-flex justify-content-end mb-2">
         <button
             id="toggleViewButton"
@@ -54,14 +59,13 @@
             data-view-mode="{% if request.session.view_mode == 'array' %}array{% else %}list{% endif %}"
         >
             {% if request.session.view_mode == 'array' %}
-                <i class="fas fa-th-large"></i> <!-- Icon for grid view -->
+                <i class="fa fa-list"></i> <!-- Icon for grid view -->
             {% else %}
-                <i class="fas fa-list"></i> <!-- Icon for list view -->
+                <i class="fa fa-th-large"></i> <!-- Icon for list view -->
             {% endif %}
         </button>
-
-        <script src="{% static 'js/toggle_view_button.js' %}"></script>
     </div>
+
     {% if messages %}
         <div class="row mt-3">
             {% for message in messages %}
@@ -80,30 +84,40 @@
 
     <div class="row">
         <div class="col-md-10 col-12 mx-auto mt-5">
+            <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset Filters</button>
             <form method="get" action="{% url 'itemview' %}">
                 <div class="d-flex justify-content-between">
                     <div class="form-group">
-                        <label for="searchField" style="margin-right: 10px;">Search:</label>
-                        <input type="text" class="form-control" id="searchField" name="q" placeholder="Search" value="{{ request.GET.q }}">
+                        <div class="d-flex align-items-center">
+                            <label for="searchField" style="margin-right: 10px;">Search:</label>
+                            <input type="text" class="form-control" id="searchField" name="q" placeholder="Search" value="{{ request.GET.q }}">
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label for="typeFilter" style="margin-right: 10px;">Type:</label>
-                        <select class="form-control" id="typeFilter" name="typeFilter">
-                            <option value="">All Types</option>
-                            {% for type in types %}
-                                <option value="{{ type.TypeID }}">{{ type.Name }}</option>
-                            {% endfor %}
-                        </select>
+                        <div class="d-flex align-items-center">
+                            <label for="typeFilter" style="margin-right: 10px;">Type:</label>
+                            <select class="form-control" id="typeFilter" name="typeFilter">
+                                <option value="">All Types</option>
+                                {% for type in types %}
+                                    <option value="{{ type.TypeID }}" {% if request.GET.typeFilter == type.TypeID %}selected{% endif %}>{{ type.Name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label for="subtypeFilter" style="margin-right: 10px;">Subtype:</label>
-                        <select class="form-control" id="subtypeFilter" name="subtypeFilter">
-                            <option value="">All Subtypes</option>
-                            {% for subtype in all_subtypes %}
-                                <option value="{{ subtype.TypeID }}">{{ subtype.Name }}</option>
-                            {% endfor %}
-                        </select>
+                        <div class="d-flex align-items-center">
+                            <label for="subtypeFilter" style="margin-right: 10px;">Subtype:</label>
+                            <select class="form-control" id="subtypeFilter" name="subtypeFilter">
+                                <option value="">All Subtypes</option>
+                                {% for subtype in all_subtypes %}
+                                    <option value="{{ subtype.TypeID }}"  {% if request.GET.subtypeFilter == subtype.TypeID %}selected{% endif %}>{{ subtype.Name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
+                    <!-- Add hidden input fields for sort and order -->
+                    <input type="hidden" name="sort" value="{{ sort }}">
+                    <input type="hidden" name="order" value="{{ order }}">
                     <button type="submit" class="btn btn-primary">Apply Filters</button>
                 </div>
             </form>
@@ -115,14 +129,53 @@
                 <table id="itemTable" class="table table-hover table-striped">
                     <thead>
                         <tr>
-                            <th id="idColumn">ID</th>
-                            <th id="nameColumn">Name</th>                        
-                            <th id="descriptionColumn">Description</th>
-                            <th id="imageColumn">Image</th>
-                            <th id="typeColumn">Type</th>                    
-                            <th id="subtypeColumn">Subtype</th>
-                            <th id="editColumn"></th>
-                            <th id="deleteColumn"></th>
+                            <th scope="col" id="idColumn" class="table-header">
+                                <a href="{% build_sort_link 'id' 'ID' sort order request.GET 'itemview' %}">
+                                    ID
+                                    {% if request.GET.sort == 'id' %}
+                                        {% if request.GET.order == 'asc' %}
+                                            <span class="sort-indicator">&#8679;</span>
+                                        {% else %}
+                                            <span class="sort-indicator">&#8681;</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="sort-indicator">&#8691;</span>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th scope="col" id="nameColumn" class="table-header">
+                                <a href="{% build_sort_link 'name' 'Name' sort order request.GET 'itemview' %}">
+                                    Name
+                                    {% if request.GET.sort == 'name' %}
+                                        {% if request.GET.order == 'asc' %}
+                                            <span class="sort-indicator">&#8679;</span>
+                                        {% else %}
+                                            <span class="sort-indicator">&#8681;</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="sort-indicator">&#8691;</span>
+                                    {% endif %}
+                                </a>
+                            </th>                                               
+                            <th scope="col" id="descriptionColumn" >
+                                <a href="{% build_sort_link 'description' 'Description' sort order request.GET 'itemview' %}">
+                                    Description
+                                    {% if request.GET.sort == 'description' %}
+                                        {% if request.GET.order == 'asc' %}
+                                            <span class="sort-indicator">&#8679;</span>
+                                        {% else %}
+                                            <span class="sort-indicator">&#8681;</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="sort-indicator">&#8691;</span>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th scope="col" id="imageColumn">Image</th>
+                            <th scope="col" id="typeColumn">Type</th>                    
+                            <th scope="col" id="subtypeColumn">Subtype</th>
+                            <th scope="col" id="editColumn"></th>
+                            <th scope="col" id="deleteColumn"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -139,7 +192,7 @@
                         </tr>
                         {% endif %}
 
-                        {% for item in items %}
+                        {% for item in page_items %}
                         <tr>
                             <th scope="row">{{ item.ItemID }}</th>
                             <td class="item-clickable" data-item-id="{{ item.ItemID }}">{{ item.Name }}</td>
@@ -159,14 +212,14 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                <p>{{ items|length }} Item(s) </p>
+                <!-- <p>{{ items|length }} Item(s) </p> -->
             </div>
         </div>
     {% else %}
         <div class="row">
             <div class="col-md-10 col-12 mx-auto mt-5">
                 <div class="row">
-                    {% for item in items %}
+                    {% for item in page_items %}
                     <div class="col-md-2 col-1 custom-card-col mt-2">
                         <div class="card">
                             <div class="card-img-container item-clickable" data-item-id="{{ item.ItemID }}">
@@ -190,55 +243,131 @@
                     </div>
                     {% endfor %}
                 </div>
-                <p>{{ items|length }} Item(s) </p>
+                <!-- <p>{{ items|length }} Item(s) </p> -->
             </div>
         </div>
     {% endif %}  
-<script>
-    $(document).ready(function () {
-        $('#itemTable').DataTable({
-			"paging": false, // Disable pagination
-            "searching": false, // Disable search
-            "info": false, // Disable info (items per page, etc.)
-            "columnDefs": [
-                { "targets": [0, 1, 2, 4], "orderable": true } // Make columns sortable
-            ]
-        });
-    });
+    <!-- Pagination links -->
+    <div class="row">
+        <div class="col-md-10 col-12 mx-auto">
+            <div class="row">
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if page_items.has_previous %}
+                            <a href="?page=1">&laquo; first</a>
+                            <a href="?page={{ page_items.previous_page_number }}">previous</a>
+                        {% endif %}
 
+                        <span class="current-page">
+                            Page {{ page_items.number }} of {{ page_items.paginator.num_pages }}
+                        </span>
+
+                        {% if page_items.has_next %}
+                            <a href="?page={{ page_items.next_page_number }}">next</a>
+                            <a href="?page={{ page_items.paginator.num_pages }}">last &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+    function resetFilters() {
+        // Get the form element
+        const filterForm = document.querySelector('form');
+
+        // Reset the search field (q)
+        const searchField = filterForm.querySelector('#searchField');
+        if (searchField) {
+            searchField.value = '';
+        }
+
+        // Redirect to the dashboard without parameters
+        window.location.href = '/itemview/';
+    }
+    function updateSubtypes() {
+        const selectedType = typeFilter.value;
+        const url = `/get-subtypes/?type=${selectedType}`;
+        const urlParams = new URLSearchParams(window.location.search);
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                subtypeFilter.innerHTML = '<option value="">All Subtypes</option>';
+                let option;
+    
+                for (const subtype of data) {
+                    option = document.createElement("option");
+                    option.value = subtype.TypeID;
+                    option.text = subtype.Name;
+                    subtypeFilter.appendChild(option);
+                    
+                    // Re-select the previously selected subtypeFilter value, if it still exists
+                    if (subtype.TypeID.toString() === urlParams.get('subtypeFilter')) {
+                        option.selected = true;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error("Error updating subtypes:", error);
+            });
+    }
+    document.addEventListener("DOMContentLoaded", function() {
+    // Item redirect
     $(document).ready(function () {
         $('.item-clickable').click(function () {
             window.location.href = '/item/' + $(this).data('item-id');
         });
     });
-
     // Get references to the type and subtype dropdowns
     const typeFilter = document.getElementById("typeFilter");
     const subtypeFilter = document.getElementById("subtypeFilter");
 
-    // Add a change event listener to the type dropdown
-    typeFilter.addEventListener("change", function() {
-        // Get the selected type value
-        const selectedType = typeFilter.value;
-        const url = `/get-subtypes/?type=${selectedType}`;
-        
-        fetch(url)
+    const urlParams = new URLSearchParams(window.location.search);
+    const typeFilterValue = urlParams.get('typeFilter');
+    $(typeFilter).val(typeFilterValue);
+
+    // Call the function to update subtypeFilter dropdown values when the page is loaded
+    updateSubtypes();
+
+    // Add an event listener to typeFilter to update subtypeFilter dropdown values when its value changes
+    typeFilter.addEventListener("change", function () {
+        updateSubtypes();
+    });
+    //Toggle view button
+    const toggleViewButton = document.getElementById("toggleViewButton");
+        const toggleViewUrl = toggleViewButton.getAttribute("data-url");
+        const csrfToken = toggleViewButton.getAttribute("data-csrf-token");
+        let currentViewMode = toggleViewButton.getAttribute("data-view-mode");
+    
+        function refreshPage() {
+            // Reload the current page
+            window.location.reload();
+        }
+    
+        toggleViewButton.addEventListener("click", function() {
+            // Send an AJAX request to update the view mode
+            fetch(toggleViewUrl, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrfToken,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ view_mode: currentViewMode }),
+            })
             .then(response => response.json())
             .then(data => {
-                // Clear current subtype options
-                subtypeFilter.innerHTML = '<option value="">All Subtypes</option>';
-
-                // Add new subtype options based on the AJAX response
-                for (const subtype of data) {
-                    const option = document.createElement("option");
-                    option.value = subtype.TypeID;
-                    option.text = subtype.Name;
-                    subtypeFilter.appendChild(option);
-                }
+                // Update the view mode on the client side
+                currentViewMode = data.new_mode;
+                toggleViewButton.setAttribute("data-view-mode", currentViewMode);
+                
+                // Refresh the page
+                refreshPage();
             })
             .catch(error => {
-                console.error(error);
+                console.error("Failed to toggle view mode", error);
             });
-    });
+        });
+    }); 
 </script>
 {% endblock content %}

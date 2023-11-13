@@ -7,9 +7,9 @@
         <!-- Navigation links -->
         <div class="col-md-12 mb-3">
             <div class="d-flex justify-content-between align-items-center">
-                <a href="{% url 'setdetails' previous_setlist_id %}" class="btn btn-secondary">&larr; Previous Set</a>
+                <a href="{% url 'setdetail' previous_setlist_id %}" class="btn btn-secondary">&larr; Previous Set</a>
                 <a href="{% url 'setlistview' %}" class="btn btn-primary">Return to Set list</a>
-                <a href="{% url 'setdetails' next_setlist_id %}" class="btn btn-secondary">Next Set &rarr;</a>
+                <a href="{% url 'setdetail' next_setlist_id %}" class="btn btn-secondary">Next Set &rarr;</a>
             </div>
         </div>
     </div>
