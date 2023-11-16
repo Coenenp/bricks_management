@@ -63,12 +63,12 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
         color_filter = request.GET.get('colorFilter', '')
         type_filter = request.GET.get('typeFilter', '')
         subtype_filter = request.GET.get('subtypeFilter', '')
-        
+
         #Get sort field and order
         sort_field = request.GET.get('sort', '')
-        sort_order = request.GET.get('order', '') 
+        sort_order = request.GET.get('order', '')
         default_sort = ('PartID__ItemID', 'PartID__ColorID__Name')
-        
+
         parts = ListPart.objects.select_related('PartID__ColorID').select_related('ListID__CategoryID').order_by(*default_sort)
 
         sort_field_mappings = {
@@ -80,7 +80,7 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
             order_by = sort_field_mappings[sort_field]
 
             if sort_order == 'desc':
-                order_by = tuple(['-' + field for field in order_by])
+                order_by = tuple('-' + field for field in order_by)
 
             parts = parts.order_by(*order_by)
 
@@ -122,19 +122,16 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
 
             # Add the part data to the aggregated data list
             aggregated_data.append(part_data)
-            
+
         if sort_field == 'qty':
-            order_by = ('-Quantity',)
-            if sort_order == 'desc':
-                order_by = ('Quantity',)
-                
+            order_by = ('Quantity', ) if sort_order == 'desc' else ('-Quantity', )
             parts = parts.order_by(*order_by)
             aggregated_data_order_by = lambda x: x['aggregated_quantity']
             aggregated_data = sorted(aggregated_data, key=aggregated_data_order_by, reverse=(sort_order == 'asc'))
 
         aggregated_data_count = len(aggregated_data)
         part_count = parts.count()
-        
+
         # Create paginator for parts
         items_per_page = 50
         paginator_parts = Paginator(parts, items_per_page)
@@ -146,7 +143,7 @@ class Dashboard(LoginRequiredMixin, View, Paginator):
         paginator_aggregated = Paginator(aggregated_data, aggregated_items_per_page)
         aggregated_page_number = request.GET.get('aggregated_page', 1)
         page_aggregated_data = paginator_aggregated.get_page(aggregated_page_number)
-        
+
         # Filter MOC parts using ListPart model
         moc_parts = parts.filter(ListID__CategoryID__pk=MOC_PART).order_by('PartID__ItemID', 'PartID__ColorID')
         total_moc_quantity = moc_parts.aggregate(total_quantity=Sum('Quantity'))['total_quantity']
@@ -470,10 +467,33 @@ class UpdateAvailableParts(View):
         return JsonResponse({'success': True, 'parts_data': parts_data})
 
 class DeletePart(LoginRequiredMixin, DeleteView):
-	model = Part
-	template_name = 'bricks/delete-part.html'
-	success_url = reverse_lazy('dashboard')
-	context_object_name = 'part'
+    model = Part
+    template_name = 'bricks/delete-part.html'
+    context_object_name = 'part'
+    success_url = reverse_lazy('dashboard')  # Default success URL
+
+    def get_success_url(self):
+        referring_url = self.request.session.get('referring_url', '')
+        return referring_url or self.success_url
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['go_back_url'] = self.request.session.get('referring_url', self.success_url)
+        return context
+
+    def get(self, request, *args, **kwargs):
+        referring_url = request.META.get('HTTP_REFERER', '')
+        if referring_url:
+            request.session['referring_url'] = referring_url
+        return super().get(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        self.object = self.get_object()
+        success_url = self.get_success_url()
+        self.object.delete()
+        if 'referring_url' in self.request.session:
+            del self.request.session['referring_url']  # Clear the session variable after use
+        return HttpResponseRedirect(success_url)
 
 class DeleteItem(LoginRequiredMixin, DeleteView):
 	model = Item

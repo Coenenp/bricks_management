@@ -134,6 +134,8 @@
                             {% endfor %}
                         </select>
                     </div>
+                </div>
+            </div>   
             <!-- Quantity input and Add to List button -->
             <div class="row mt-3">
                 <div class="col-md-12">
@@ -154,71 +156,70 @@
                         </div>
                     </form>
                 </div>
-            </div>
+            </div>  
         </div>
     </div>
-</div>
-<div>
-    <br>  
-</div>
-<hr>
-<div class="row mt-3">
-    <div class="col-md-12 col-12 mx-auto">
-        <h2>Part Details</h2>
-    </div>
-</div>
-<hr>
 
-<div class="row mt-3">
-    <div class="col-md-12 col-12 mx-auto">
-        <h2>Available Colors</h2>
-            <table class="table table-hover table-striped" id="parts-table">
-                <thead>
-                    <tr>
-                        <th class="col">Part</th>
-                        <th class="col">Image</th>
-                        <th class="col">Color</th>
-                        <th class="col">Lists</th>
-                        <th class="col">Quantity</th>
-                    </tr>
-                </thead>
-                <tbody id="parts-table-body">
-                    {% for part_info in parts_data %}
-                    <tr>
-                        <td>{{ part_info.part.PartID }}</td>
-                        <td>
-                            {% if part_info.part.InternalURL %}
-                                <img src="{{ part_info.part.InternalURL.url }}" alt="{{ part_info.part.ColorID.Name }}"
-                                class="img-fluid" style="max-width: 50px;">
-                            {% else %}
-                                - No Image -
-                            {% endif %}   
-                        </td>
-                        <td>
-                            <div class="color-swatch"
-                                style="background-color: {{ part_info.part.ColorID.RGB }}; padding: 5px; text-align: center;"
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                data-bs-html="true"
-                                title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part_info.part.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ part_info.part.ColorID.HEX }}<br>{{ part_info.part.ColorID.Name }}</div>">
-                                <div class="color-num"
-                                    style="background: {{ part_info.part.ColorID.RGB }}; color: {{part_info.part.ColorID.RGB|is_dark_color }}; font-size: 9px;">{{ part_info.part.ColorID.Name }}</div>
-                            </div>
-                        </td>
-                        <td>
-                            {% for list in part_info.appearing_lists %}
-                                {% if list.CategoryID.Name == 'MOC Part' %}
-                                    <span class="text-danger">{{ list.Name }}</span><br>
+    <div>
+        <br>  
+    </div>
+    <hr>
+
+    <div class="row mt-3">
+        <div class="col-md-12 col-12 mx-auto">
+            <h2>Available Colors</h2>
+                <table class="table table-hover table-striped" id="parts-table">
+                    <thead>
+                        <tr>
+                            <th class="col">Part</th>
+                            <th class="col">Image</th>
+                            <th class="col">Color</th>
+                            <th class="col">Lists</th>
+                            <th class="col">Quantity</th>
+                            <th scope="col"></th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="parts-table-body">
+                        {% for part_info in parts_data %}
+                        <tr>
+                            <td>{{ part_info.part.PartID }}</td>
+                            <td>
+                                {% if part_info.part.InternalURL %}
+                                    <img src="{{ part_info.part.InternalURL.url }}" alt="{{ part_info.part.ColorID.Name }}"
+                                    class="img-fluid" style="max-width: 50px;">
                                 {% else %}
-                                    <span class="text-success">{{ list.Name }}</span><br>
-                                {% endif %}
-                            {% endfor %}
-                        </td>
-                        <td>{{ part_info.total_quantity }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                    - No Image -
+                                {% endif %}   
+                            </td>
+                            <td>
+                                <div class="color-swatch"
+                                    style="background-color: {{ part_info.part.ColorID.RGB }}; padding: 5px; text-align: center;"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    data-bs-html="true"
+                                    title="<div style='text-align: center;''><img src='/media/color_images/color.{{ part_info.part.ColorID.ColorID }}.png' alt='Color Image' width: 55px; height: 45px;'><br>{{ part_info.part.ColorID.HEX }}<br>{{ part_info.part.ColorID.Name }}</div>">
+                                    <div class="color-num"
+                                        style="background: {{ part_info.part.ColorID.RGB }}; color: {{part_info.part.ColorID.RGB|is_dark_color }}; font-size: 9px;">{{ part_info.part.ColorID.Name }}</div>
+                                </div>
+                            </td>
+                            <td>
+                                {% for list in part_info.appearing_lists %}
+                                    {% if list.CategoryID.Name == 'MOC Part' %}
+                                        <span class="text-danger">{{ list.Name }}</span><br>
+                                    {% else %}
+                                        <span class="text-success">{{ list.Name }}</span><br>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>{{ part_info.total_quantity }}</td>
+                            <td><a href="{% url 'partdetail' part_info.part.PartID %}" class="btn btn-outline-secondary">Edit</a></td>
+                            <td><a href="{% url 'delete-part' part_info.part.PartID %}" class="btn btn-secondary">Delete</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+        </div>
     </div>
 </div>
 
@@ -406,6 +407,8 @@
                         });
                         newTableContent += '</td>';
                         newTableContent += '<td>' + partInfo.total_quantity + '</td>';
+                        newTableContent += '<td><a href="/partdetail/' + partInfo.part.id + '" class="btn btn-outline-secondary">Edit</a></td>';
+                        newTableContent += '<td><a href="/delete-part/' + partInfo.part.id + '" class="btn btn-secondary">Delete</a></td>';
                         newTableContent += '</tr>';
                     });
                     
