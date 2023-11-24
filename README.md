@@ -36,6 +36,7 @@ The Brick Collection Management System is a Django-based inventory system design
     - **Delete Parts**: Remove parts from specific lists or all lists based on the view.
     - **Part Details**: View detailed part information, including lists associated and quantity adjustments.
     - **Item View**: Display available molds or items, toggle between grid and table views, and manage items.
+    - **Item Details View**: Showcases an image of the item in a random color and relevant details such as Item ID and name. Allows users to create new parts by selecting a color from the matrix, choosing a list, specifying a positive quantity, and adding it to the selected list. Displays a table of related parts and their respective lists. Users can navigate to the part details page or delete the part, removing it from all lists.
     - **Set List View**: Access and view all uploaded or added sets with respective actions.
     - **Set Details View**: Detailed view of a specific set, including associated parts and availability details.
     - **List View**: Display a table of all lists with key details such as ID, Name, Description, and item counts.
