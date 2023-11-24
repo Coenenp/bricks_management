@@ -25,4 +25,8 @@ SQLAlchemy==2.0.20
 sqlparse==0.4.4
 typing_extensions==4.7.1
 tzdata==2023.3
+<<<<<<< Updated upstream
 urllib3==2.0.4
+=======
+urllib3==2.0.4
+>>>>>>> Stashed changes

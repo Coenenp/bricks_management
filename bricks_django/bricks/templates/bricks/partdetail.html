@@ -118,6 +118,7 @@
                                 <th class="col">Description</th>
                                 <th class="col">Category</th>
                                 <th class="col text-end">Quantity</th>
+                                <th class="col"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -133,6 +134,7 @@
                                         <button type="button" class="btn btn-outline-secondary" onclick="incrementValue('{{ part_list.list.ListID }}')">+</button>
                                     </div>
                                 </td>
+                                <td><a href="{% url 'delete-part-list' part_list.part.PartID part_list.list.ListID part_list.list.Name %}" class="btn btn-secondary">Delete</a></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -171,11 +173,14 @@
     
     function decrementValue(listID) {
         var quantityField = document.getElementById("quantity_" + listID);
-        if (quantityField.value > 0) {
+        if (quantityField.value > 1) { // Check if value is greater than 1 before decrementing
             quantityField.value = parseInt(quantityField.value) - 1;
+        } else {
+            quantityField.value = 1; // Set quantity to 1 if it's currently 1 or less
         }
         checkChanges(listID); // Check for changes after decrementing
     }
+    
 
     function incrementValue(listID) {
         var quantityField = document.getElementById("quantity_" + listID);
@@ -184,20 +189,18 @@
     }
 
     function checkChanges(listID) {
-        // Check if any input field has been changed for the specified ListID
         var inputField = document.getElementById("quantity_" + listID);
         var value = inputField.value;
         var originalValue = inputField.getAttribute("value");
-
+    
         if (value != originalValue) {
             changesDetected = true;
         } else {
             changesDetected = false;
         }
-
-        // Enable or disable the "Save Changes" button based on changes detected
+    
         var saveButton = document.getElementById("saveButton");
-        if (changesDetected) {
+        if (value >= 1 && changesDetected) { // Enable save button if value is at least 1 and changes detected
             saveButton.removeAttribute("disabled");
         } else {
             saveButton.setAttribute("disabled", "true");

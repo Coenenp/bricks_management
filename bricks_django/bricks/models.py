@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.contrib.auth.models import User
 
@@ -101,13 +102,12 @@ class ListPart(models.Model):
     ListPartID = models.AutoField(primary_key=True)
     ListID = models.ForeignKey(List, on_delete=models.CASCADE)
     PartID = models.ForeignKey(Part, on_delete=models.CASCADE)
-    Quantity = models.IntegerField()
+    Quantity = models.IntegerField(validators=[MinValueValidator(1)])
     date_updated = models.DateTimeField(default=timezone.now)
     
     # Add the unique_together constraint
     class Meta:
         unique_together = ('ListID', 'PartID')
-
     def __str__(self):
         return f'{self.ListID} - {self.PartID} - {self.Quantity}'
 
@@ -147,7 +147,7 @@ class SetListPart(models.Model):
     SetListPartID = models.AutoField(primary_key=True)
     SetListID = models.ForeignKey(SetList, on_delete=models.CASCADE)
     SetPartID = models.ForeignKey(SetPart, on_delete=models.CASCADE)
-    Quantity = models.IntegerField()
+    Quantity = models.IntegerField(validators=[MinValueValidator(1)])
     date_updated = models.DateTimeField(default=timezone.now)
     
     # Add the unique_together constraint

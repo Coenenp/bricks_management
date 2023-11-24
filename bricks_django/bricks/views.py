@@ -393,7 +393,7 @@ class PartDetailView(LoginRequiredMixin, UpdateView):
         part_lists = part.listpart_set.all()
 
         # Create a list of dictionaries containing list and quantity
-        part_lists_data = [{'list': list_part.ListID, 'quantity': list_part.Quantity} for list_part in part_lists]
+        part_lists_data = [{'part': list_part.PartID, 'list': list_part.ListID, 'quantity': list_part.Quantity} for list_part in part_lists]
 
         context['part_lists_data'] = part_lists_data
 
