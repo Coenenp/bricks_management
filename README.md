@@ -13,7 +13,8 @@ The Brick Collection Management System is a Django-based inventory system design
 
 
 
-![Itemview_1](https://github.com/Coenenp/bricks_management/assets/17593262/6a990e9a-a822-470b-986d-c8b06c7f9179)
+![Itemview_2](https://github.com/Coenenp/bricks_management/assets/17593262/f675699f-67ad-448e-882a-55b896a44b61)
+
 *Screenshot: Item View showcasing available molds or items*
 
 
