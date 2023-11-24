@@ -1,6 +1,6 @@
 # Brick Collection Management System
 
-![android-chrome-512x512](https://github.com/Coenenp/bricks_management/assets/17593262/bf9d3a69-f3a9-4a65-ac18-b873d1dc97cb)
+![android-chrome-192x192](https://github.com/Coenenp/bricks_management/assets/17593262/f9addcc5-68b4-45c5-8631-bc868d46eb23)
 
 ## Overview
 
@@ -11,8 +11,12 @@ The Brick Collection Management System is a Django-based inventory system design
 ![Dashboard_1](https://github.com/Coenenp/bricks_management/assets/17593262/14b3bdf3-62dc-4653-acda-8e1ca807d8fb)
 *Screenshot: Dashboard displaying the user's collection filtered by color and type*
 
+
+
 ![Itemview_1](https://github.com/Coenenp/bricks_management/assets/17593262/6a990e9a-a822-470b-986d-c8b06c7f9179)
 *Screenshot: Item View showcasing available molds or items*
+
+
 
 ## Key Concepts
 
@@ -49,6 +53,9 @@ Below are the additional packages installed for this Django project:
 
 This project utilizes Bootstrap 5 as the front-end framework with the "Minty" theme obtained from Bootswatch. Bootstrap 5 ensures a responsive and visually appealing user interface.
 
+## Public Domain Dedication
+
+All code and subsequent modifications in this project have been created by [Your Name] and are hereby released into the public domain. To the extent possible under law, I waive all copyright and related or neighboring rights to this work worldwide.
 ## Usage
 
 To deploy and run the project locally:
