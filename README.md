@@ -47,8 +47,10 @@ Below are the additional packages installed for this Django project:
 
 - **django-fontawesome-5**: Integration for Font Awesome icons in Django templates.
 - **python-decouple**: Simplifies handling of settings by separating configuration from code.
-- **crispy_forms**: Assists in managing Django forms elegantly.
-- **crispy_bootstrap5**: Extends crispy_forms to utilize Bootstrap 5 styles for forms.
+- **django-crispy-forms**: Assists in managing Django forms elegantly.
+- **crispy-bootstrap5**: Extends crispy_forms to utilize Bootstrap 5 styles for forms.
+- **pandas**: Provides data manipulation and analysis tools in Python.
+- **Pillow**: Python Imaging Library for handling image files.
 
 ## Front-end Framework and Theme
 
