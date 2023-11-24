@@ -55,7 +55,8 @@ This project utilizes Bootstrap 5 as the front-end framework with the "Minty" th
 
 ## Public Domain Dedication
 
-All code and subsequent modifications in this project have been created by [Your Name] and are hereby released into the public domain. To the extent possible under law, I waive all copyright and related or neighboring rights to this work worldwide.
+All code and subsequent modifications in this project have been created by Pieter Coenen and are hereby released into the public domain. To the extent possible under law, I waive all copyright and related or neighboring rights to this work worldwide.
+
 ## Usage
 
 To deploy and run the project locally:
